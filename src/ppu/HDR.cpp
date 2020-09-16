@@ -70,7 +70,7 @@ namespace ppu
     osg::ref_ptr<osgPPU::ShaderAttribute> shaderAdapted;
   };
 
-  const std::string HDR::NAME = "hdrEffect";
+  const std::string HDR::Name = "hdrEffect";
 
   HDR::HDR(osgHelper::ioc::Injector& injector)
     : Effect()
@@ -83,7 +83,7 @@ namespace ppu
 
   std::string HDR::getName() const
   {
-    return NAME;
+    return Name;
   }
 
   Effect::InitialUnitList HDR::getInitialUnits() const

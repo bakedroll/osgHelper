@@ -14,7 +14,7 @@ namespace ppu
   class HDR : public Effect
 	{
 	public:
-		static const std::string NAME;
+		static const std::string Name;
 
 		HDR(osgHelper::ioc::Injector& injector);
     ~HDR();
