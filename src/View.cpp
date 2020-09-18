@@ -136,42 +136,6 @@ namespace osgHelper
 
       // updateCameraRenderTextures();
       processor->dirtyUnitSubgraph();
-    }
-
-    void updateWindowRect(const osgViewer::ViewerBase::Windows& windows)
-    {
-      if (!resolutionInitialized)
-      {
-        return;
-	    }
-
-      osg::ref_ptr<osgViewer::GraphicsWindow> graphicsWindow = *windows.begin();
-
-      if (!graphicsWindow.valid())
-      {
-        return;
-	    }
-
-      if (fullscreenEnabled)
-      {
-        auto screenWidth  = 0U;
-        auto screenHeight = 0U;
-
-        osg::GraphicsContext::getWindowingSystemInterface()->getScreenResolution(
-                osg::GraphicsContext::ScreenIdentifier(0), screenWidth, screenHeight);
-
-        graphicsWindow->setWindowDecoration(false);
-        graphicsWindow->setWindowRectangle(0, 0, static_cast<int>(screenWidth), static_cast<int>(screenHeight));
-      }
-      else
-      {
-        graphicsWindow->setWindowDecoration(true);
-        graphicsWindow->setWindowRectangle(
-            static_cast<int>(windowRect.x()),
-            static_cast<int>(windowRect.y()),
-            static_cast<int>(windowRect.z()),
-            static_cast<int>(windowRect.w()));
-      }
     }*/
 
     /*void updateCameraRenderTextures(UpdateTextureMode mode = UpdateTextureMode::Keep)
@@ -250,23 +214,6 @@ namespace osgHelper
   {
     return m->sceneGraph;
   }
-
-  // TODO: refactor
-  /*void View::setHud(const osg::ref_ptr<Hud>& hud)
-  {
-    if (m->hud == hud)
-	  {
-      return;
-	  }
-
-    if (m->hud.valid())
-    {
-      m->hudSwitch->removeChild(m->hud->getProjection());
-    }
-
-    m->hud = hud;
-    m->hudSwitch->addChild(m->hud->getProjection(), true);
-  }*/
 
   void View::addPostProcessingEffect(const osg::ref_ptr<ppu::Effect>& ppe, bool enabled, const std::string& name)
   {
