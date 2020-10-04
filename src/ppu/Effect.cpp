@@ -31,5 +31,9 @@ namespace ppu
 		return InputToUniformList();
 	}
 
+  void Effect::onResizeViewport(const osg::Vec2f& resolution)
+	{
+	  
+	}
 }
 }

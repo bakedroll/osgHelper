@@ -1,8 +1,9 @@
 #pragma once
 
 #include <osgHelper/ppu/Effect.h>
-
 #include <osgHelper/ioc/Injector.h>
+
+#include <osgPPU/Unit.h>
 
 #include <memory>
 

@@ -14,19 +14,20 @@ namespace osgHelper
 namespace ppu
 {
 	class FXAA : public Effect
-	{
-	public:
-		static const std::string Name;
+  {
+  public:
+    static const std::string Name;
 
     explicit FXAA(osgHelper::ioc::Injector& injector);
     ~FXAA();
 
-		std::string getName() const override;
-		InitialUnitList getInitialUnits() const override;
-		osg::ref_ptr<osgPPU::Unit> getResultUnit() const override;
-		InputToUniformList getInputToUniform() const override;
+    std::string                getName() const override;
+    InitialUnitList            getInitialUnits() const override;
+    osg::ref_ptr<osgPPU::Unit> getResultUnit() const override;
+    InputToUniformList         getInputToUniform() const override;
 
-		void setResolution(osg::Vec2f resolution);
+    void setResolution(osg::Vec2f resolution);
+		void onResizeViewport(const osg::Vec2f& resolution) override;
 
 	protected:
 		void initializeUnits() override;
@@ -34,7 +35,6 @@ namespace ppu
 	private:
     struct Impl;
     std::unique_ptr<Impl> m;
-
-	};
+  };
 }
 }
