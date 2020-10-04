@@ -16,8 +16,6 @@
 
 #include <osgDB/WriteFile>
 
-#include <gl/GL.h>
-
 #include <cassert>
 
 namespace osgHelper
@@ -26,7 +24,7 @@ namespace osgHelper
   {
     Impl(osg::Camera* c)
       : sceneGraph(new osg::Group())
-      , camera(new osgHelper::Camera(*c))
+      , camera(new osgHelper::Camera())
       , isResolutionInitialized(false)
       , isPipelineDirty(false)
     {
@@ -247,8 +245,8 @@ namespace osgHelper
     m->camera->setViewport(viewport);
   }
 
-  void View::setOpenGLContextControlFunctions(const std::function<void()>& makeCurrentFunc,
-    const std::function<void()>& doneCurrentFunc)
+  void View::setOpenGLMakeContextCurrentFunction(const std::function<void()>& makeCurrentFunc,
+                                                 const std::function<void()>& doneCurrentFunc)
   {
     m->makeCurrentFunc = makeCurrentFunc;
     m->doneCurrentFunc = doneCurrentFunc;
@@ -342,7 +340,7 @@ namespace osgHelper
     m->camera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT, osg::Camera::FRAME_BUFFER);
     m->camera->setComputeNearFarMode(osg::CullSettings::DO_NOT_COMPUTE_NEAR_FAR);
     m->camera->setClearMask(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    //m->camera->setRenderOrder(osg::Camera::PRE_RENDER);
+    m->camera->setRenderOrder(osg::Camera::PRE_RENDER);
 
     m->processor = new osgPPU::Processor();
     m->processor->setCamera(m->camera);
@@ -455,16 +453,16 @@ namespace osgHelper
       func();
       assemblePipeline();
 
-      // updateCameraRenderTextures();
+      updateCameraRenderTextures();
       m->processor->dirtyUnitSubgraph();
     };
 
     canSetupPipeline ? executeInOpenGLContext(alterFunc) : func();
   }
 
-  void View::executeInOpenGLContext(const std::function<void()>& func)
+  void View::executeInOpenGLContext(const std::function<void()>& func) const
   {
-    if (!m->makeCurrentFunc && !m->doneCurrentFunc)
+    if (!m->makeCurrentFunc || !m->doneCurrentFunc)
     {
         OSGG_LOG_WARN("Missing OpenGL context functions");
         assert_return(false);
@@ -481,12 +479,12 @@ namespace osgHelper
     {
       for (const auto& it : m->renderTextures)
       {
-        //m->getOrCreateRenderTexture(static_cast<osg::Camera::BufferComponent>(it.first), mode);
+        m->getOrCreateRenderTexture(static_cast<osg::Camera::BufferComponent>(it.first), mode);
       }
     }
 
     auto renderer = dynamic_cast<osgViewer::Renderer*>(m->camera->getRenderer());
     renderer->getSceneView(0)->getRenderStage()->setCameraRequiresSetUp(true);
-    renderer->getSceneView(0)->getRenderStage()->setFrameBufferObject(nullptr);
+    // renderer->getSceneView(0)->getRenderStage()->setFrameBufferObject(nullptr);
   }
 }  // namespace osgHelper

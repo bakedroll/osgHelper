@@ -29,8 +29,8 @@ namespace osgHelper
     void updateResolution(const osg::Vec2f& resolution, int pixelRatio = 1);
     void updateViewport(int x, int y, int width, int height, int pixelRatio = 1);
 
-    void setOpenGLContextControlFunctions(const std::function<void()>& makeCurrentFunc,
-                                          const std::function<void()>& doneCurrentFunc);
+    void setOpenGLMakeContextCurrentFunction(const std::function<void()>& makeCurrentFunc,
+                                             const std::function<void()>& doneCurrentFunc);
 
     void setClampColorEnabled(bool enabled);
 
@@ -57,7 +57,7 @@ namespace osgHelper
     void disassemblePipeline();
 
     void alterPipelineState(const std::function<void()>& func, UpdateMode mode = UpdateMode::Recreate);
-    void executeInOpenGLContext(const std::function<void()>& func);
+    void executeInOpenGLContext(const std::function<void()>& func) const;
 
     void updateCameraRenderTextures(UpdateMode mode = UpdateMode::Keep);
 
