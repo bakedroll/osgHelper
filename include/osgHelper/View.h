@@ -30,7 +30,7 @@ namespace osgHelper
     void updateViewport(int x, int y, int width, int height, int pixelRatio = 1);
 
     void setOpenGLMakeContextCurrentFunction(const std::function<void()>& makeCurrentFunc,
-                                             const std::function<void()>& doneCurrentFunc);
+                                             const std::function<void()>& doneCurrentFunc = nullptr);
 
     void setClampColorEnabled(bool enabled);
 

@@ -22,7 +22,7 @@ namespace osgHelper
 {
   struct View::Impl
   {
-    Impl(osg::Camera* c)
+    Impl()
       : sceneGraph(new osg::Group())
       , camera(new osgHelper::Camera())
       , isResolutionInitialized(false)
@@ -196,7 +196,7 @@ namespace osgHelper
 
   View::View()
     : osgViewer::View()
-    , m(new Impl(getCamera()))
+    , m(new Impl())
   {
     setCamera(m->camera);
     setSceneData(m->sceneGraph);
@@ -338,6 +338,7 @@ namespace osgHelper
   void View::initializePipelineProcessor()
   {
     m->camera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT, osg::Camera::FRAME_BUFFER);
+    //m->camera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT);  //, osg::Camera::FRAME_BUFFER);
     m->camera->setComputeNearFarMode(osg::CullSettings::DO_NOT_COMPUTE_NEAR_FAR);
     m->camera->setClearMask(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     m->camera->setRenderOrder(osg::Camera::PRE_RENDER);
@@ -461,8 +462,8 @@ namespace osgHelper
   }
 
   void View::executeInOpenGLContext(const std::function<void()>& func) const
-  {
-    if (!m->makeCurrentFunc || !m->doneCurrentFunc)
+  { /*
+    if (!m->makeCurrentFunc)
     {
         OSGG_LOG_WARN("Missing OpenGL context functions");
         assert_return(false);
@@ -470,7 +471,13 @@ namespace osgHelper
 
     m->makeCurrentFunc();
     func();
-    m->doneCurrentFunc();
+
+    if (m->doneCurrentFunc)
+    {
+      m->doneCurrentFunc();
+    }*/
+
+    func();
   }
 
   void View::updateCameraRenderTextures(UpdateMode mode)
@@ -485,6 +492,6 @@ namespace osgHelper
 
     auto renderer = dynamic_cast<osgViewer::Renderer*>(m->camera->getRenderer());
     renderer->getSceneView(0)->getRenderStage()->setCameraRequiresSetUp(true);
-    // renderer->getSceneView(0)->getRenderStage()->setFrameBufferObject(nullptr);
+    renderer->getSceneView(0)->getRenderStage()->setFrameBufferObject(nullptr);
   }
 }  // namespace osgHelper
