@@ -62,9 +62,6 @@ namespace osgHelper
     PostProcessingStateDictionary ppeDictionary;
     RenderTextureDictionary       renderTextures;
 
-    std::function<void()> makeCurrentFunc;
-    std::function<void()> doneCurrentFunc;
-
     osg::ref_ptr<osg::Texture2D> createRenderTexture(osg::Camera::BufferComponent bufferComponent)
     {
       auto texture = new osg::Texture2D();
@@ -225,31 +222,21 @@ namespace osgHelper
 
     if (m->processor.valid())
     {
-      executeInOpenGLContext([this, width, height, pixelRatio]()
-      {
-        updateCameraRenderTextures(UpdateMode::Recreate);
+      updateCameraRenderTextures(UpdateMode::Recreate);
 
-        osgPPU::Camera::resizeViewport(0, 0, width, height, m->camera);
-        m->processor->onViewportChange();
+      osgPPU::Camera::resizeViewport(0, 0, width, height, m->camera);
+      m->processor->onViewportChange();
 
-        updateViewport(0, 0, width, height, pixelRatio);
+      updateViewport(0, 0, width, height, pixelRatio);
 
-        m->processor->dirtyUnitSubgraph();
-      });
+      m->processor->dirtyUnitSubgraph();
     }
   }
 
   void View::updateViewport(int x, int y, int width, int height, int pixelRatio)
   {
-    const auto viewport = new osg::Viewport(x, y, pixelRatio * width, pixelRatio * height);
+    const auto viewport = new osg::Viewport(x, y, width * pixelRatio, height * pixelRatio);
     m->camera->setViewport(viewport);
-  }
-
-  void View::setOpenGLMakeContextCurrentFunction(const std::function<void()>& makeCurrentFunc,
-                                                 const std::function<void()>& doneCurrentFunc)
-  {
-    m->makeCurrentFunc = makeCurrentFunc;
-    m->doneCurrentFunc = doneCurrentFunc;
   }
 
   void View::setClampColorEnabled(bool enabled)
@@ -448,36 +435,18 @@ namespace osgHelper
     const auto canSetupPipeline = (m->isResolutionInitialized && (mode == UpdateMode::Recreate));
     m->isPipelineDirty          = (!m->isResolutionInitialized && (mode == UpdateMode::Recreate));
 
-    auto alterFunc = [this, canSetupPipeline, &func]()
+    if (!canSetupPipeline)
     {
-      disassemblePipeline();
       func();
-      assemblePipeline();
-
-      updateCameraRenderTextures();
-      m->processor->dirtyUnitSubgraph();
-    };
-
-    canSetupPipeline ? executeInOpenGLContext(alterFunc) : func();
-  }
-
-  void View::executeInOpenGLContext(const std::function<void()>& func) const
-  { /*
-    if (!m->makeCurrentFunc)
-    {
-        OSGG_LOG_WARN("Missing OpenGL context functions");
-        assert_return(false);
+      return;
     }
 
-    m->makeCurrentFunc();
+    disassemblePipeline();
     func();
+    assemblePipeline();
 
-    if (m->doneCurrentFunc)
-    {
-      m->doneCurrentFunc();
-    }*/
-
-    func();
+    updateCameraRenderTextures();
+    m->processor->dirtyUnitSubgraph();
   }
 
   void View::updateCameraRenderTextures(UpdateMode mode)
