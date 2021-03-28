@@ -33,7 +33,7 @@ namespace osgHelper
     explicit ShaderFactory(ioc::Injector& injector);
     ~ShaderFactory();
 
-		osg::ref_ptr<osg::Shader> fromSourceText(std::string key, std::string source, osg::Shader::Type type);
+		osg::ref_ptr<osg::Shader> fromSourceText(const std::string& key, const std::string& source, osg::Shader::Type type);
 
 	private:
 		typedef std::map<std::string, osg::ref_ptr<osg::Shader>> ShaderDictionary;

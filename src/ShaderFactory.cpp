@@ -80,7 +80,8 @@ namespace osgHelper
   {
   }
 
-  osg::ref_ptr<osg::Shader> ShaderFactory::fromSourceText(std::string key, std::string source, osg::Shader::Type type)
+  osg::ref_ptr<osg::Shader> ShaderFactory::fromSourceText(const std::string& key, const std::string& source,
+                                                          osg::Shader::Type type)
   {
     ShaderDictionary::iterator it = m_shaderCache.find(key);
 

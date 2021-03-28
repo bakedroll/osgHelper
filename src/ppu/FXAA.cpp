@@ -63,14 +63,13 @@ namespace ppu
     return list;
   }
 
-  void FXAA::setResolution(osg::Vec2f resolution)
+  void FXAA::setResolution(const osg::Vec2f& resolution)
   {
     m->resolution = resolution;
 
     if (m->shaderFxaa.valid())
     {
-      m->shaderFxaa->set("rt_w", m->resolution.x());
-      m->shaderFxaa->set("rt_h", m->resolution.y());
+      updateResolutionUniforms();
     }
   }
 
@@ -88,8 +87,7 @@ namespace ppu
       m->shaderFxaa->add("rt_w", osg::Uniform::FLOAT);
       m->shaderFxaa->add("rt_h", osg::Uniform::FLOAT);
 
-      m->shaderFxaa->set("rt_w", m->resolution.x());
-      m->shaderFxaa->set("rt_h", m->resolution.y());
+      updateResolutionUniforms();
       
       m->unitFxaa->getOrCreateStateSet()->setAttributeAndModes(m->shaderFxaa);
     }
@@ -99,5 +97,12 @@ namespace ppu
   {
     setResolution(resolution);
   }
-}
+
+  void FXAA::updateResolutionUniforms()
+  {
+    m->shaderFxaa->set("rt_w", m->resolution.x());
+    m->shaderFxaa->set("rt_h", m->resolution.y());
+  }
+
+  }
 }

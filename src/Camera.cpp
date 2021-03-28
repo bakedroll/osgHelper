@@ -3,9 +3,9 @@
 
 namespace osgHelper
 {
-  Camera::Camera()
+  Camera::Camera(ProjectionMode mode)
     : osg::Camera()
-    , m_mode(ProjectionMode::Perspective)
+    , m_mode(mode)
     , m_angleNearFarRatio(30.0, 1.0, 100.0, 1.0)
   {
     updateProjectionMode();
@@ -142,7 +142,7 @@ namespace osgHelper
   {
     if (m_mode == ProjectionMode::Ortho2D)
     {
-      setViewMatrix(osg::Matrix::identity());
+      setViewMatrix(osg::Matrixd::identity());
     }
     else if (m_mode == ProjectionMode::Perspective)
     {
@@ -170,8 +170,7 @@ namespace osgHelper
   {
     if (m_mode == ProjectionMode::Ortho2D)
     {
-      setProjectionMatrix(osg::Matrix::ortho2D(0.0, static_cast<double>(m_resolution.x()) - 1.0,
-                                               static_cast<double>(m_resolution.y()) - 1.0, 0.0));
+      setProjectionMatrix(osg::Matrixd::identity());
     }
     else if (m_mode == ProjectionMode::Perspective)
     {

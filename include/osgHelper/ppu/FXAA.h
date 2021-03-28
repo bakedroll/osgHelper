@@ -26,7 +26,7 @@ namespace ppu
     osg::ref_ptr<osgPPU::Unit> getResultUnit() const override;
     InputToUniformList         getInputToUniform() const override;
 
-    void setResolution(osg::Vec2f resolution);
+    void setResolution(const osg::Vec2f& resolution);
 		void onResizeViewport(const osg::Vec2f& resolution) override;
 
 	protected:
@@ -35,6 +35,9 @@ namespace ppu
 	private:
     struct Impl;
     std::unique_ptr<Impl> m;
+
+    void updateResolutionUniforms();
+
   };
 }
 }

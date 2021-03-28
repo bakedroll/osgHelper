@@ -17,7 +17,7 @@ namespace osgHelper
       Ortho2D
     };
 
-    Camera();
+    explicit Camera(ProjectionMode mode = ProjectionMode::Perspective);
     explicit Camera(const osg::Camera& camera, const osg::CopyOp& copyOp = osg::CopyOp::SHALLOW_COPY);
     ~Camera() override;
 

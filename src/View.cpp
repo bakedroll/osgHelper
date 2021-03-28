@@ -1,6 +1,7 @@
 #include <osgHelper/View.h>
 #include <osgHelper/LogManager.h>
 #include <osgHelper/Macros.h>
+#include <osgHelper/Helper.h>
 
 #include <osg/ClampColor>
 #include <osg/Texture2D>
@@ -8,13 +9,13 @@
 #include <osgViewer/Renderer>
 
 #include <osgPPU/Unit.h>
-#include <osgPPU/UnitOut.h>
 #include <osgPPU/UnitInOut.h>
 #include <osgPPU/Processor.h>
 #include <osgPPU/UnitBypass.h>
 #include <osgPPU/UnitDepthbufferBypass.h>
 
 #include <osgDB/WriteFile>
+#include <osgDB/ReadFile>
 
 #include <cassert>
 
@@ -24,7 +25,7 @@ namespace osgHelper
   {
     Impl()
       : sceneGraph(new osg::Group())
-      , camera(new osgHelper::Camera())
+      , cameras(underlying(CameraType::_Count))
       , isResolutionInitialized(false)
       , isPipelineDirty(false)
     {
@@ -46,8 +47,10 @@ namespace osgHelper
     using RenderTextureDictionary       = std::map<int, RenderTexture>;
     using PostProcessingStateDictionary = std::map<std::string, PostProcessingState>;
 
-    osg::ref_ptr<osg::Group>        sceneGraph;
-    osg::ref_ptr<osgHelper::Camera> camera;
+    osg::ref_ptr<osg::Group>          sceneGraph;
+    std::vector<osg::ref_ptr<Camera>> cameras;
+
+    osg::ref_ptr<osg::StateSet> screenStateSet;
 
     osg::Vec2f resolution;
     bool       isResolutionInitialized;
@@ -57,15 +60,49 @@ namespace osgHelper
     osg::ref_ptr<osg::ClampColor>   clampColor;
 
     osg::ref_ptr<osgPPU::Unit>      lastUnit;
-    osg::ref_ptr<osgPPU::UnitOut>   unitOutput;
+    osg::ref_ptr<osgPPU::UnitInOut> unitOutput;
 
     PostProcessingStateDictionary ppeDictionary;
     RenderTextureDictionary       renderTextures;
+
+    void setupCameras()
+    {
+      const auto sceneCamera  = new Camera(Camera::ProjectionMode::Perspective);
+      sceneCamera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT, osg::Camera::FRAME_BUFFER);
+      sceneCamera->setComputeNearFarMode(osg::CullSettings::DO_NOT_COMPUTE_NEAR_FAR);
+      sceneCamera->setClearMask(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      sceneCamera->setRenderOrder(osg::Camera::PRE_RENDER);
+
+      const auto screenCamera = new Camera(Camera::ProjectionMode::Ortho2D);
+      screenCamera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER, osg::Camera::FRAME_BUFFER);
+      screenCamera->setRenderOrder(osg::Camera::POST_RENDER);
+
+      cameras[underlying(CameraType::Scene)]  = sceneCamera;
+      cameras[underlying(CameraType::Screen)] = screenCamera;
+
+      const auto& texture = getOrCreateRenderTexture(osg::Camera::COLOR_BUFFER).texture;
+
+      auto geo = osg::createTexturedQuadGeometry(osg::Vec3f(-1.0f, -1.0f, 0.0f), osg::Vec3f(2.0f, 0.0f, 0.0f),
+                                                 osg::Vec3f(0.0f, 2.0f, 0.0f));
+
+      auto geode = new osg::Geode();
+      geode->addDrawable(geo);
+
+      screenStateSet = geode->getOrCreateStateSet();
+      screenStateSet->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
+      screenStateSet->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
+      screenStateSet->setMode(GL_DEPTH_TEST, osg::StateAttribute::OFF);
+      screenStateSet->setMode(GL_BLEND, osg::StateAttribute::OFF);
+
+      sceneGraph->addChild(screenCamera);
+      screenCamera->addChild(geode);
+    }
 
     osg::ref_ptr<osg::Texture2D> createRenderTexture(osg::Camera::BufferComponent bufferComponent)
     {
       auto texture = new osg::Texture2D();
 
+      texture->setDataVariance(osg::Texture::DataVariance::DYNAMIC);
       texture->setTextureSize(static_cast<int>(resolution.x()), static_cast<int>(resolution.y()));
       texture->setFilter(osg::Texture2D::MIN_FILTER, osg::Texture2D::LINEAR);
       texture->setFilter(osg::Texture2D::MAG_FILTER, osg::Texture2D::LINEAR);
@@ -90,7 +127,7 @@ namespace osgHelper
           break;
       }
 
-      camera->attach(bufferComponent, texture);
+      cameras[underlying(CameraType::Scene)]->attach(bufferComponent, texture);
 
       return texture;
     }
@@ -105,7 +142,7 @@ namespace osgHelper
 
         if (mode == UpdateMode::Recreate)
         {
-          camera->detach(bufferComponent);
+          cameras[underlying(CameraType::Scene)]->detach(bufferComponent);
           renderTexture.texture = createRenderTexture(bufferComponent);
         }
 
@@ -131,11 +168,6 @@ namespace osgHelper
           case osg::Camera::COLOR_BUFFER:
           {
             renderTexture.bypassUnit = new osgPPU::UnitBypass();
-
-            //auto unit = new osgPPU::UnitCameraAttachmentBypass();
-            //unit->setBufferComponent(osg::Camera::COLOR_BUFFER0);
-            //renderTexture.bypassUnit = unit;
-
             processor->addChild(renderTexture.bypassUnit);
 
             break;
@@ -143,12 +175,8 @@ namespace osgHelper
           case osg::Camera::DEPTH_BUFFER:
           {
             renderTexture.bypassUnit = new osgPPU::UnitDepthbufferBypass();
-
-            //auto unit = new osgPPU::UnitCameraAttachmentBypass();
-            //unit->setBufferComponent(osg::Camera::DEPTH_BUFFER);
-            //renderTexture.bypassUnit = unit;
-
             processor->addChild(renderTexture.bypassUnit);
+
             break;
           }
           default:
@@ -195,7 +223,9 @@ namespace osgHelper
     : osgViewer::View()
     , m(new Impl())
   {
-    setCamera(m->camera);
+    m->setupCameras();
+
+    setCamera(getCamera(CameraType::Scene));
     setSceneData(m->sceneGraph);
   }
 
@@ -206,10 +236,12 @@ namespace osgHelper
     const auto width  = static_cast<int>(resolution.x());
     const auto height = static_cast<int>(resolution.y());
 
+    const auto initialResolutionUpdate = (m->resolution.length2() == 0.0f);
+
     m->resolution              = resolution;
     m->isResolutionInitialized = true;
 
-    if (m->isPipelineDirty)
+    if (m->isPipelineDirty || initialResolutionUpdate)
     {
       alterPipelineState([](){}, UpdateMode::Recreate);
       m->isPipelineDirty = false;
@@ -222,21 +254,23 @@ namespace osgHelper
 
     if (m->processor.valid())
     {
-      updateCameraRenderTextures(UpdateMode::Recreate);
-
-      osgPPU::Camera::resizeViewport(0, 0, width, height, m->camera);
+      osgPPU::Camera::resizeViewport(0, 0, width, height, getCamera(CameraType::Scene));
       m->processor->onViewportChange();
-
-      updateViewport(0, 0, width, height, pixelRatio);
-
-      m->processor->dirtyUnitSubgraph();
     }
+
+    updateCameraViewports(0, 0, width, height, pixelRatio);
+    updateCameraRenderTextures(UpdateMode::Recreate);
   }
 
-  void View::updateViewport(int x, int y, int width, int height, int pixelRatio)
+  void View::updateCameraViewports(int x, int y, int width, int height, int pixelRatio) const
   {
     const auto viewport = new osg::Viewport(x, y, width * pixelRatio, height * pixelRatio);
-    m->camera->setViewport(viewport);
+
+    for (const auto& camera : m->cameras)
+    {
+      camera->setViewport(viewport);
+      camera->updateResolution(osg::Vec2i(width, height));
+    }
   }
 
   void View::setClampColorEnabled(bool enabled)
@@ -249,7 +283,7 @@ namespace osgHelper
       m->clampColor->setClampReadColor(GL_FALSE);
     }
 
-    m->camera->getOrCreateStateSet()->setAttribute(m->clampColor, enabled ? osg::StateAttribute::ON : osg::StateAttribute::OFF);
+    getCamera(CameraType::Scene)->getOrCreateStateSet()->setAttribute(m->clampColor, enabled ? osg::StateAttribute::ON : osg::StateAttribute::OFF);
   }
 
   osg::ref_ptr<osg::Group> View::getRootGroup() const
@@ -257,9 +291,9 @@ namespace osgHelper
     return m->sceneGraph;
   }
 
-  osg::ref_ptr<osgHelper::Camera> View::getSceneCamera() const
+  osg::ref_ptr<osgHelper::Camera> View::getCamera(CameraType type) const
   {
-    return m->camera;
+    return m->cameras[underlying(type)];
   }
 
   void View::addPostProcessingEffect(const osg::ref_ptr<ppu::Effect>& ppe, bool enabled, const std::string& name)
@@ -324,18 +358,14 @@ namespace osgHelper
 
   void View::initializePipelineProcessor()
   {
-    m->camera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT, osg::Camera::FRAME_BUFFER);
-    //m->camera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT);  //, osg::Camera::FRAME_BUFFER);
-    m->camera->setComputeNearFarMode(osg::CullSettings::DO_NOT_COMPUTE_NEAR_FAR);
-    m->camera->setClearMask(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    m->camera->setRenderOrder(osg::Camera::PRE_RENDER);
+    const auto& sceneCamera = getCamera(CameraType::Scene);
 
     m->processor = new osgPPU::Processor();
-    m->processor->setCamera(m->camera);
+    m->processor->setCamera(sceneCamera);
 
     m->sceneGraph->addChild(m->processor);
 
-    osgPPU::Camera::resizeViewport(0, 0, m->resolution.x(), m->resolution.y(), m->camera);
+    osgPPU::Camera::resizeViewport(0, 0, m->resolution.x(), m->resolution.y(), sceneCamera);
     m->processor->onViewportChange();
   }
 
@@ -416,17 +446,10 @@ namespace osgHelper
         m->lastUnit->removeChild(m->unitOutput);
     }
 
-    //auto width  = static_cast<int>(m->resolution.x());
-    //auto height = static_cast<int>(m->resolution.y());
-
-    m->unitOutput = new osgPPU::UnitOut();
+    m->unitOutput = new osgPPU::UnitInOut();
     m->unitOutput->setInputTextureIndexForViewportReference(-1);
-    m->unitOutput->setViewport(m->camera->getViewport());
-           // new osg::Viewport(0, 0, width, height));
-
-    //m->unitOutput = new osgPPU::UnitOutCapture();
-    //m->unitOutput->setPath("./");
-    //m->unitOutput->setFileExtension("bmp");
+    m->screenStateSet->setTextureAttributeAndModes(0, m->unitOutput->getOrCreateOutputTexture(0),
+                                                   osg::StateAttribute::ON);
 
   }
 
@@ -451,15 +474,16 @@ namespace osgHelper
 
   void View::updateCameraRenderTextures(UpdateMode mode)
   {
-    if (mode == UpdateMode::Recreate)
+    for (const auto& it : m->renderTextures)
     {
-      for (const auto& it : m->renderTextures)
+      const auto& tex = m->getOrCreateRenderTexture(static_cast<osg::Camera::BufferComponent>(it.first), mode).texture;
+      if ((it.first == osg::Camera::COLOR_BUFFER) && !m->processor.valid())
       {
-        m->getOrCreateRenderTexture(static_cast<osg::Camera::BufferComponent>(it.first), mode);
+        m->screenStateSet->setTextureAttributeAndModes(0, tex, osg::StateAttribute::ON);
       }
     }
 
-    auto renderer = dynamic_cast<osgViewer::Renderer*>(m->camera->getRenderer());
+    auto renderer = dynamic_cast<osgViewer::Renderer*>(getCamera(CameraType::Scene)->getRenderer());
     renderer->getSceneView(0)->getRenderStage()->setCameraRequiresSetUp(true);
     renderer->getSceneView(0)->getRenderStage()->setFrameBufferObject(nullptr);
   }

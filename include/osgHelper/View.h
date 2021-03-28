@@ -23,16 +23,25 @@ namespace osgHelper
       Keep      //!< do not recreate
     };
 
+    //! Determines a specific camera that is used in this view
+    enum class CameraType : int
+    {
+      Scene,  //!< The main scene camera, usually with a perspective projection mode
+      Screen, //!< The camera that renders the frame buffer object resulting from the main render stage
+              //!< to the screen, usually in ortho2D projection mode
+      _Count  //!< Used to determine the number of different camera types in this view
+    };
+
     View();
     ~View();
 
     void updateResolution(const osg::Vec2f& resolution, int pixelRatio = 1);
-    void updateViewport(int x, int y, int width, int height, int pixelRatio = 1);
+    void updateCameraViewports(int x, int y, int width, int height, int pixelRatio = 1) const;
 
     void setClampColorEnabled(bool enabled);
 
     osg::ref_ptr<osg::Group>        getRootGroup() const;
-    osg::ref_ptr<osgHelper::Camera> getSceneCamera() const;
+    osg::ref_ptr<osgHelper::Camera> getCamera(CameraType type) const;
 
     void addPostProcessingEffect(const osg::ref_ptr<ppu::Effect>& ppe, bool enabled = true,
                                  const std::string& name = "");
