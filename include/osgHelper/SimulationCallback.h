@@ -1,6 +1,5 @@
 #pragma once
 
-#include <osg/Drawable>
 #include <osg/Callback>
 
 namespace osgHelper

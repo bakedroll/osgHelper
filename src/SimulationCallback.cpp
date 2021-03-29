@@ -1,5 +1,7 @@
 #include <osgHelper/SimulationCallback.h>
 
+#include <osg/NodeVisitor>
+
 namespace osgHelper
 {
 
