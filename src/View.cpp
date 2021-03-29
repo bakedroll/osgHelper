@@ -88,7 +88,7 @@ namespace osgHelper
       auto geode = new osg::Geode();
       geode->addDrawable(geo);
 
-      screenStateSet = geode->getOrCreateStateSet();
+      screenStateSet = screenCamera->getOrCreateStateSet();
       screenStateSet->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
       screenStateSet->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
       screenStateSet->setMode(GL_DEPTH_TEST, osg::StateAttribute::OFF);
