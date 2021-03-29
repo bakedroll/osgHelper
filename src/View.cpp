@@ -104,8 +104,8 @@ namespace osgHelper
 
       texture->setDataVariance(osg::Texture::DataVariance::DYNAMIC);
       texture->setTextureSize(static_cast<int>(resolution.x()), static_cast<int>(resolution.y()));
-      texture->setFilter(osg::Texture2D::MIN_FILTER, osg::Texture2D::LINEAR);
-      texture->setFilter(osg::Texture2D::MAG_FILTER, osg::Texture2D::LINEAR);
+      texture->setFilter(osg::Texture2D::MIN_FILTER, osg::Texture2D::NEAREST);
+      texture->setFilter(osg::Texture2D::MAG_FILTER, osg::Texture2D::NEAREST);
       texture->setResizeNonPowerOfTwoHint(false);
       texture->setWrap(osg::Texture2D::WRAP_S, osg::Texture2D::CLAMP_TO_BORDER);
       texture->setWrap(osg::Texture2D::WRAP_T, osg::Texture2D::CLAMP_TO_BORDER);
@@ -236,6 +236,15 @@ namespace osgHelper
     const auto width  = static_cast<int>(resolution.x());
     const auto height = static_cast<int>(resolution.y());
 
+    updateCameraViewports(0, 0, width, height, pixelRatio);
+    updateCameraRenderTextures(UpdateMode::Recreate);
+
+    if (m->processor.valid())
+    {
+      osgPPU::Camera::resizeViewport(0, 0, width, height, getCamera(CameraType::Scene));
+      m->processor->onViewportChange();
+    }
+
     const auto initialResolutionUpdate = (m->resolution.length2() == 0.0f);
 
     m->resolution              = resolution;
@@ -251,20 +260,11 @@ namespace osgHelper
     {
       effect.second.effect->onResizeViewport(resolution);
     }
-
-    if (m->processor.valid())
-    {
-      osgPPU::Camera::resizeViewport(0, 0, width, height, getCamera(CameraType::Scene));
-      m->processor->onViewportChange();
-    }
-
-    updateCameraViewports(0, 0, width, height, pixelRatio);
-    updateCameraRenderTextures(UpdateMode::Recreate);
   }
 
   void View::updateCameraViewports(int x, int y, int width, int height, int pixelRatio) const
   {
-    const auto viewport = new osg::Viewport(x, y, width * pixelRatio, height * pixelRatio);
+    const auto viewport = new osg::Viewport(x, y, pixelRatio * width, pixelRatio * height);
 
     for (const auto& camera : m->cameras)
     {
@@ -283,7 +283,8 @@ namespace osgHelper
       m->clampColor->setClampReadColor(GL_FALSE);
     }
 
-    getCamera(CameraType::Scene)->getOrCreateStateSet()->setAttribute(m->clampColor, enabled ? osg::StateAttribute::ON : osg::StateAttribute::OFF);
+    getCamera(CameraType::Scene)->getOrCreateStateSet()->setAttribute(m->clampColor,
+        enabled ? osg::StateAttribute::ON : osg::StateAttribute::OFF);
   }
 
   osg::ref_ptr<osg::Group> View::getRootGroup() const
