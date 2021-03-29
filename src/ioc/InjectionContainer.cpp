@@ -22,6 +22,11 @@ namespace ioc
 #ifdef _DEBUG
     for (const auto& it : m_registeredSingletons)
     {
+      if (!it.second.valid())
+      {
+        continue;
+      }
+
       auto refcount = it.second->referenceCount();
       if (refcount > 1)
       {
