@@ -357,6 +357,12 @@ namespace osgHelper
     return (m->ppeDictionary.count(ppeName) > 0);
   }
 
+  void View::cleanUp()
+  {
+    setSceneData(nullptr);
+    m->ppeDictionary.clear();
+  }
+
   void View::initializePipelineProcessor()
   {
     const auto& sceneCamera = getCamera(CameraType::Scene);

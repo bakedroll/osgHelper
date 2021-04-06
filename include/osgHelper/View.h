@@ -54,6 +54,8 @@ namespace osgHelper
     bool getPostProcessingEffectEnabled(const std::string& ppeName) const;
     bool hasPostProcessingEffect(const std::string& ppeName) const;
 
+    void cleanUp();
+
   private:
     struct Impl;
     std::unique_ptr<Impl> m;
