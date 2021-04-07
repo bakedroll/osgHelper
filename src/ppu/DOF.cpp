@@ -2,6 +2,7 @@
 #include <osgHelper/ppu/Shaders.h>
 #include <osgHelper/ShaderFactory.h>
 
+#include <osgPPU/UnitInResampleOut.h>
 #include <osgPPU/ShaderAttribute.h>
 
 namespace osgHelper

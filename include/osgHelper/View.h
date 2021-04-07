@@ -61,6 +61,7 @@ namespace osgHelper
     std::unique_ptr<Impl> m;
 
     void initializePipelineProcessor();
+
     void assemblePipeline();
     void disassemblePipeline();
 

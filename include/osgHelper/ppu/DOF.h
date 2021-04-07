@@ -4,8 +4,6 @@
 
 #include <osgHelper/ppu/Effect.h>
 
-#include <osgPPU/UnitInResampleOut.h>
-
 #include <osgHelper/ioc/Injector.h>
 
 namespace osgHelper

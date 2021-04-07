@@ -104,8 +104,8 @@ namespace osgHelper
 
       texture->setDataVariance(osg::Texture::DataVariance::DYNAMIC);
       texture->setTextureSize(static_cast<int>(resolution.x()), static_cast<int>(resolution.y()));
-      texture->setFilter(osg::Texture2D::MIN_FILTER, osg::Texture2D::NEAREST);
-      texture->setFilter(osg::Texture2D::MAG_FILTER, osg::Texture2D::NEAREST);
+      texture->setFilter(osg::Texture2D::MIN_FILTER, osg::Texture2D::LINEAR);
+      texture->setFilter(osg::Texture2D::MAG_FILTER, osg::Texture2D::LINEAR);
       texture->setResizeNonPowerOfTwoHint(false);
       texture->setWrap(osg::Texture2D::WRAP_S, osg::Texture2D::CLAMP_TO_BORDER);
       texture->setWrap(osg::Texture2D::WRAP_T, osg::Texture2D::CLAMP_TO_BORDER);

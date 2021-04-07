@@ -23,11 +23,11 @@ namespace ppu
     {
     }
 
-    void action(osg::Object* object, osg::Object* data, double simTime, double timeDiff) override
+    void action(const osgHelper::SimulationCallback::SimulationData& data) override
     {
       unitAdaptedLuminance->getOrCreateStateSet()
               ->getOrCreateUniform("invFrameTime", osg::Uniform::FLOAT)
-              ->set(static_cast<float>(timeDiff));
+              ->set(static_cast<float>(data.timeDelta));
     }
 
   private:

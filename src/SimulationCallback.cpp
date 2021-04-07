@@ -7,8 +7,9 @@ namespace osgHelper
 
 SimulationCallback::SimulationCallback()
 	: osg::Callback(),
+    m_data({ 0.0, 0.0 }),
 	  m_lastSimulationTime(0.0),
-	  m_resetTimeDiff(false)
+	  m_resetTimeDelta(false)
 {
 
 }
@@ -23,28 +24,28 @@ bool SimulationCallback::run(osg::Object* node, osg::Object* data)
     return false;
   }
 
-	auto time = nv->getFrameStamp()->getSimulationTime();
-	auto time_diff = 0.0;
+	m_data.time = nv->getFrameStamp()->getSimulationTime();
+	m_data.timeDelta = 0.0;
 
-	if (m_resetTimeDiff)
+	if (m_resetTimeDelta)
 	{
-		m_resetTimeDiff = false;
+		m_resetTimeDelta = false;
 	}
 	else if (m_lastSimulationTime > 0.0)
 	{
-		time_diff = time - m_lastSimulationTime;
+		m_data.timeDelta = m_data.time - m_lastSimulationTime;
 	}
 
-	m_lastSimulationTime = time;
+	m_lastSimulationTime = m_data.time;
 
-	action(node, data, time, time_diff);
+	action(m_data);
 
   return true;
 }
 
-void SimulationCallback::resetTimeDiff()
+void SimulationCallback::resetTimeDelta()
 {
-	m_resetTimeDiff = true;
+	m_resetTimeDelta = true;
 }
 
 }
