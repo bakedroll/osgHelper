@@ -373,6 +373,7 @@ namespace osgHelper
     m->sceneGraph->addChild(m->processor);
 
     osgPPU::Camera::resizeViewport(0, 0, m->resolution.x(), m->resolution.y(), sceneCamera);
+    osgPPU::Camera::resizeViewport(0, 0, m->resolution.x(), m->resolution.y(), sceneCamera);
     m->processor->onViewportChange();
   }
 
