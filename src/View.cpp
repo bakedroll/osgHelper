@@ -485,7 +485,7 @@ namespace osgHelper
     for (const auto& it : m->renderTextures)
     {
       const auto& tex = m->getOrCreateRenderTexture(static_cast<osg::Camera::BufferComponent>(it.first), mode).texture;
-      if ((it.first == osg::Camera::COLOR_BUFFER) && (!m->processor.valid() || (mode == UpdateMode::Recreate)))
+      if ((it.first == osg::Camera::COLOR_BUFFER) && !m->processor.valid())
       {
         m->screenStateSet->setTextureAttributeAndModes(0, tex, osg::StateAttribute::ON);
       }
