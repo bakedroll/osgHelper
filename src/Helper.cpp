@@ -1,8 +1,6 @@
-#include "../../osgGaming/include/osgGaming/Helper.h"
-
 #include <osgHelper/Helper.h>
 
-#include <math.h>
+#include <cmath>
 #include <sstream>
 
 #include <osg/Geode>

@@ -313,7 +313,7 @@ namespace osgHelper
   {
     if (m->ppeDictionary.count(ppeName) == 0)
     {
-      OSGG_LOG_WARN("Post processing effect '" + ppeName + "' not found");
+      OSGH_LOG_WARN("Post processing effect '" + ppeName + "' not found");
       assert_return(false);
     }
 
@@ -323,7 +323,7 @@ namespace osgHelper
       return;
 	  }
 
-    OSGG_LOG_DEBUG("Post processing effect '" + ppeName + "': " + (enabled ? "enabled" : "disabled"));
+    OSGH_LOG_DEBUG("Post processing effect '" + ppeName + "': " + (enabled ? "enabled" : "disabled"));
 
     alterPipelineState([&ppe, enabled]()
     {

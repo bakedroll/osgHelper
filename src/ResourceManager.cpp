@@ -11,7 +11,7 @@
 namespace osgHelper
 {
 
-ResourceManager::ResourceManager(Injector& injector)
+ResourceManager::ResourceManager(ioc::Injector& injector)
 {
 }
 

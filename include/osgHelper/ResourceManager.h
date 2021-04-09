@@ -10,9 +10,12 @@
 
 namespace osgHelper
 {
-  class Injector;
+namespace ioc
+{
+class Injector;
+}
 
-  class ResourceManager : public osg::Referenced
+class ResourceManager : public osg::Referenced
   {
   public:
     typedef enum _resourceType
@@ -23,7 +26,7 @@ namespace osgHelper
       SHADER
     } ResourceType;
 
-    explicit ResourceManager(Injector& injector);
+    explicit ResourceManager(ioc::Injector& injector);
     ~ResourceManager();
 
     std::string                 loadText(const std::string& resourceKey);

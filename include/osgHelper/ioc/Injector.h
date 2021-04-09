@@ -28,14 +28,14 @@ namespace ioc
       {
         if (it == tid)
 		    {
-          OSGG_LOG_WARN("Circular dependency detected!");
+          OSGH_LOG_WARN("Circular dependency detected!");
 		    }
       }
 
       char buffer[256];
       sprintf_s(buffer, "%*s%s%s", (m_depth)* 2, "", "Injecting ", tid.name());
 
-      OSGG_LOG_INFO(std::string(buffer));
+      OSGH_LOG_INFO(std::string(buffer));
     }
 
     template<typename T>

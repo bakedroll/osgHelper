@@ -242,21 +242,21 @@ namespace ppu
 
   void HDR::initializeUnits()
   {
-    auto shaderBrightpassFp =
+    const auto shaderBrightpassFp =
             m->shaderFactory->fromSourceText("ShaderBrightpassFp", Shaders::ShaderBrightpassFp, osg::Shader::FRAGMENT);
-    auto shaderGaussConvolution1dxFp = m->shaderFactory->fromSourceText(
+    const auto shaderGaussConvolution1dxFp = m->shaderFactory->fromSourceText(
             "ShaderGaussConvolution1dxFp", Shaders::ShaderGaussConvolution1dxFp, osg::Shader::FRAGMENT);
-    auto shaderGaussConvolution1dyFp = m->shaderFactory->fromSourceText(
+    const auto shaderGaussConvolution1dyFp = m->shaderFactory->fromSourceText(
             "ShaderGaussConvolution1dyFp", Shaders::ShaderGaussConvolution1dyFp, osg::Shader::FRAGMENT);
-    auto shaderGaussConvolutionVp = m->shaderFactory->fromSourceText(
+    const auto shaderGaussConvolutionVp = m->shaderFactory->fromSourceText(
             "ShaderGaussConvolutionVp", Shaders::ShaderGaussConvolutionVp, osg::Shader::VERTEX);
-    auto shaderLuminanceAdaptedFp = m->shaderFactory->fromSourceText(
+    const auto shaderLuminanceAdaptedFp = m->shaderFactory->fromSourceText(
             "ShaderLuminanceAdaptedFp", Shaders::ShaderLuminanceAdaptedFp, osg::Shader::FRAGMENT);
-    auto shaderLuminanceFp =
+    const auto shaderLuminanceFp =
             m->shaderFactory->fromSourceText("ShaderLuminanceFp", Shaders::ShaderLuminanceFp, osg::Shader::FRAGMENT);
-    auto shaderLuminanceMipmapFp = m->shaderFactory->fromSourceText(
+    const auto shaderLuminanceMipmapFp = m->shaderFactory->fromSourceText(
             "ShaderLuminanceMipmapFp", Shaders::ShaderLuminanceMipmapFp, osg::Shader::FRAGMENT);
-    auto shaderTonemapHdrFp =
+    const auto shaderTonemapHdrFp =
             m->shaderFactory->fromSourceText("ShaderTonemapHdrFp", Shaders::ShaderTonemapHdrFp, osg::Shader::FRAGMENT);
 
     m->unitResample = new osgPPU::UnitInResampleOut();

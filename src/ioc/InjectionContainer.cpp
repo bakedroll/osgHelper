@@ -33,7 +33,7 @@ namespace ioc
         char buffer[256];
         sprintf_s(buffer, "%s has %d references left", it.first.name(), refcount - 1);
 
-        OSGG_LOG_WARN(std::string(buffer));
+        OSGH_LOG_WARN(std::string(buffer));
       }
     }
 #endif

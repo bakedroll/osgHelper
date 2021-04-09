@@ -34,7 +34,7 @@ namespace osgHelper
       , m_fromValue(value)
 	    , m_toValue(T())
       , m_duration(duration)
-      , m_timeBegin(T())
+      , m_timeBegin(0)
       , m_animationStarted(false)
       , m_ease(ease)
     {

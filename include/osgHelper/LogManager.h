@@ -6,17 +6,17 @@
 #include <memory>
 #include <string>
 
-#define OSGG_LOG(sev, msg) osgHelper::LogManager::getInstance()->log(sev, msg)
+#define OSGH_LOG(sev, msg) osgHelper::LogManager::getInstance()->log(sev, msg)
 
 #ifdef _DEBUG
-#define OSGG_LOG_DEBUG(msg) OSGG_LOG(osgHelper::LogManager::DEBUG, msg)
+#define OSGH_LOG_DEBUG(msg) OSGH_LOG(osgHelper::LogManager::DEBUG, msg)
 #else
-#define OSGG_LOG_DEBUG(msg)
+#define OSGH_LOG_DEBUG(msg)
 #endif
 
-#define OSGG_LOG_INFO(msg) OSGG_LOG(osgHelper::LogManager::INFO, msg)
-#define OSGG_LOG_WARN(msg) OSGG_LOG(osgHelper::LogManager::WARNING, msg)
-#define OSGG_LOG_FATAL(msg) OSGG_LOG(osgHelper::LogManager::FATAL, msg)
+#define OSGH_LOG_INFO(msg) OSGH_LOG(osgHelper::LogManager::INFO, msg)
+#define OSGH_LOG_WARN(msg) OSGH_LOG(osgHelper::LogManager::WARNING, msg)
+#define OSGH_LOG_FATAL(msg) OSGH_LOG(osgHelper::LogManager::FATAL, msg)
 
 namespace osgHelper
 {

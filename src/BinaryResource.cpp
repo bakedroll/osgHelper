@@ -26,7 +26,7 @@ osg::Object* BinaryResource::clone(const osg::CopyOp& copyOp) const
 
 const char* BinaryResource::libraryName() const
 {
-  return "osgGaming";
+  return "osgHelper";
 }
 
 const char* BinaryResource::className() const

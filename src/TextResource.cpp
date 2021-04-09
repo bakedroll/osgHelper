@@ -19,7 +19,7 @@ osg::Object* TextResource::clone(const osg::CopyOp& copyOp) const
 
 const char* TextResource::libraryName() const
 {
-  return "osgGaming";
+  return "osgHelper";
 }
 
 const char* TextResource::className() const
