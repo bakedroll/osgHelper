@@ -23,7 +23,7 @@ namespace ppu
     {
     }
 
-    void action(const osgHelper::SimulationCallback::SimulationData& data) override
+    void action(const SimulationData& data) override
     {
       unitAdaptedLuminance->getOrCreateStateSet()
               ->getOrCreateUniform("invFrameTime", osg::Uniform::FLOAT)

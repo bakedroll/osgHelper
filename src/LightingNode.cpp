@@ -7,6 +7,7 @@ namespace osgHelper
 LightingNode::LightingNode()
   : osg::Group()
 {
+  initializeStateSet();
 }
 
 LightingNode::~LightingNode() = default;

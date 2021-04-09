@@ -40,6 +40,7 @@ bool SimulationCallback::run(osg::Object* node, osg::Object* data)
 
 	action(m_data);
 
+	traverse(node, data);
   return true;
 }
 
