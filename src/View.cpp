@@ -383,6 +383,8 @@ bool View::hasPostProcessingEffect(const std::string& ppeName) const
 void View::cleanUp()
 {
   setSceneData(nullptr);
+  m->sceneGraph->removeChildren(0, m->sceneGraph->getNumChildren());
+
   m->ppeDictionary.clear();
 }
 
