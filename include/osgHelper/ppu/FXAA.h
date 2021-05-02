@@ -30,7 +30,7 @@ namespace ppu
 		void onResizeViewport(const osg::Vec2f& resolution) override;
 
 	protected:
-		void initializeUnits() override;
+		Status initializeUnits(const osg::GL2Extensions* extensions) override;
 
 	private:
     struct Impl;

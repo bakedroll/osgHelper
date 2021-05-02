@@ -4,6 +4,8 @@
 #include <string>
 
 #include <osg/Referenced>
+#include <osg/GL2Extensions>
+
 #include <osgPPU/Unit.h>
 
 namespace osgHelper
@@ -19,6 +21,18 @@ namespace ppu
 			BypassDepth,
 			OngoingColor
 		};
+
+		enum class InitResult
+		{
+		  Initialized,
+			UnsupportedShaders
+		};
+
+		struct Status
+		{
+      InitResult  result;
+      std::string message;
+    };
 
 		struct InitialUnit
 		{
@@ -38,8 +52,9 @@ namespace ppu
 
     Effect();
 
-		void initialize();
-		bool isInitialized() const;
+    Status initialize(const osg::GL2Extensions* extensions);
+    bool   isInitialized() const;
+		bool   isSupported() const;
 
     virtual std::string                getName() const         = 0;
     virtual InitialUnitList            getInitialUnits() const = 0;
@@ -48,10 +63,11 @@ namespace ppu
     virtual void                       onResizeViewport(const osg::Vec2f& resolution);
 
   protected:
-		virtual void initializeUnits() = 0;
+		virtual Status initializeUnits(const osg::GL2Extensions* extensions) = 0;
 
 	private:
 		bool m_isInitialized;
+		bool m_isSupported;
 
 	};
 }

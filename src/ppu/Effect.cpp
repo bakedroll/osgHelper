@@ -1,39 +1,55 @@
 #include <osgHelper/ppu/Effect.h>
 
-namespace osgHelper
-{
-namespace ppu
+namespace osgHelper::ppu
 {
 
-	Effect::Effect()
-		: Referenced()
-		, m_isInitialized(false)
-	{
+Effect::Effect()
+	: Referenced()
+	, m_isInitialized(false)
+  , m_isSupported(true)
+{
 
-	}
+}
 
-	void Effect::initialize()
+Effect::Status Effect::initialize(const osg::GL2Extensions* extensions)
+{
+	Status status = { InitResult::Initialized, "" };
+
+	if (!m_isInitialized)
 	{
-		if (!m_isInitialized)
+		status = initializeUnits(extensions);
+
+		if (status.result == InitResult::Initialized)
 		{
-			initializeUnits();
 			m_isInitialized = true;
+		}
+		else
+		{
+			m_isSupported = false;
 		}
 	}
 
-	bool Effect::isInitialized() const
-	{
-		return m_isInitialized;
-	}
-
-	Effect::InputToUniformList Effect::getInputToUniform() const
-	{
-		return InputToUniformList();
-	}
-
-  void Effect::onResizeViewport(const osg::Vec2f& resolution)
-	{
-	  
-	}
+	return status;
 }
+
+bool Effect::isInitialized() const
+{
+	return m_isInitialized;
+}
+
+bool Effect::isSupported() const
+{
+	return m_isSupported;
+}
+
+Effect::InputToUniformList Effect::getInputToUniform() const
+{
+	return InputToUniformList();
+}
+
+void Effect::onResizeViewport(const osg::Vec2f& resolution)
+{
+	
+}
+
 }

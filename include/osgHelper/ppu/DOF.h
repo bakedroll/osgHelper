@@ -39,7 +39,7 @@ namespace ppu
 		float getZFar() const;
 
 	protected:
-		void initializeUnits() override;
+		Status initializeUnits(const osg::GL2Extensions* extensions) override;
 
 	private:
     struct Impl;

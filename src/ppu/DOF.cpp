@@ -192,7 +192,7 @@ namespace ppu
     return m->zFar;
   }
 
-  void DOF::initializeUnits()
+  Effect::Status DOF::initializeUnits(const osg::GL2Extensions* extensions)
   {
     auto shaderDepthOfFieldFp = m->shaderFactory->fromSourceText(
             "ShaderDepthOfFieldFp", Shaders::ShaderDepthOfFieldFp, osg::Shader::FRAGMENT);
@@ -283,6 +283,8 @@ namespace ppu
       m->unitDof->setInputToUniform(blurylight, "texBlurredColorMap", true);
       m->unitDof->setInputToUniform(blurystrong, "texStrongBlurredColorMap", true);
     }
+
+    return { InitResult::Initialized, "" };
   }
 
 }
