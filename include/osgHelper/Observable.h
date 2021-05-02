@@ -53,6 +53,7 @@ namespace osgHelper
     public:
       ObservableBase()
         : osg::Referenced()
+        , m_notifying(false)
       {}
 
       /**
@@ -63,7 +64,15 @@ namespace osgHelper
         const typename Observer<T>::Func& func)
       {
         auto observer = new Observer<T>(func);
-        observers().push_back(observer);
+
+        if (m_notifying)
+        {
+          m_pendingObservers.push_back(observer);
+        }
+        else
+        {
+          m_observers.push_back(observer); 
+        }
 
         return observer;
       }
@@ -85,11 +94,23 @@ namespace osgHelper
       using ObserverList = std::vector<osg::observer_ptr<Observer<T>>>;
 
       /**
-       * The Observers are stored as weak pointers.
+       * Notify a specific observer. Must be implemented by inheriting classes.
+       */
+      virtual void notify(const typename Observer<T>::Ptr& obs) = 0;
+
+      /**
+       * Notifes all the observers.
        * When there is no reference left, it gets removed from the list and will no longer be notified.
        */
-      ObserverList& observers()
+      void notifyAll()
       {
+        if (m_notifying)
+        {
+          return;
+        }
+
+        m_notifying = true;
+
         auto it = m_observers.begin();
         while (it != m_observers.end())
         {
@@ -100,31 +121,23 @@ namespace osgHelper
           }
           else
           {
+            notify(obs);
             ++it;
           }
         }
 
-        return m_observers;
-      }
+        m_observers.insert(m_observers.end(), m_pendingObservers.begin(), m_pendingObservers.end());
+        m_pendingObservers.clear();
 
-      /**
-       * Notify a specific observer. Must be implemented by inheriting classes.
-       */
-      virtual void notify(const typename Observer<T>::Ptr& obs) = 0;
-
-      /**
-       * Notifes all the observers.
-       */
-      void notifyAll()
-      {
-        const ObserverList& obs = observers();
-        for (const auto& o : obs)
-        {
-          notify(o.get());
-        }
+        m_notifying = false;
       }
 
       ObserverList m_observers;
+      ObserverList m_pendingObservers;
+
+    private:
+      bool m_notifying;
+
     };
   }
 
