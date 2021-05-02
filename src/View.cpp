@@ -231,7 +231,7 @@ namespace osgHelper
 
   View::~View() = default;
 
-  void View::updateResolution(const osg::Vec2f& resolution, int pixelRatio)
+  void View::updateResolution(const osg::Vec2f& resolution, float pixelRatio)
   {
     const auto width  = static_cast<int>(resolution.x());
     const auto height = static_cast<int>(resolution.y());
@@ -262,7 +262,7 @@ namespace osgHelper
     }
   }
 
-  void View::updateCameraViewports(int x, int y, int width, int height, int pixelRatio) const
+  void View::updateCameraViewports(int x, int y, int width, int height, float pixelRatio) const
   {
     const auto viewport = new osg::Viewport(x, y, pixelRatio * width, pixelRatio * height);
 

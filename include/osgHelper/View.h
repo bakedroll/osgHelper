@@ -32,11 +32,11 @@ namespace osgHelper
       _Count  //!< Used to determine the number of different camera types in this view
     };
 
-    View();
+    explicit View();
     ~View();
 
-    void updateResolution(const osg::Vec2f& resolution, int pixelRatio = 1);
-    void updateCameraViewports(int x, int y, int width, int height, int pixelRatio = 1) const;
+    void updateResolution(const osg::Vec2f& resolution, float pixelRatio = 1.0f);
+    void updateCameraViewports(int x, int y, int width, int height, float pixelRatio = 1.0f) const;
 
     void setClampColorEnabled(bool enabled);
 
