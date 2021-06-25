@@ -57,7 +57,13 @@ namespace ioc
 #endif
 
   public:
-    explicit Injector(InjectionContainer& container);
+    enum class Mode
+    {
+      OnlyRegisteredClasses,
+      InstantiateNonRegisteredClasses
+    };
+
+    explicit Injector(InjectionContainer& container, Mode mode = Mode::OnlyRegisteredClasses);
 
     template<typename T>
     osg::ref_ptr<T> inject()
@@ -95,12 +101,21 @@ namespace ioc
 #endif
       }
 
-      assert(false && "Class T was not registered.");
-      return nullptr;
+      if (m_mode == Mode::OnlyRegisteredClasses)
+      {
+        assert(false && "Class T was not registered.");
+        return nullptr;
+      }
+
+      const std::string cname(tid.name());
+
+      OSGH_LOG_WARN("Instatiated class '" + cname + "' that was not registered.");
+      return new T(*this);
     }
 
   private:
     InjectionContainer* m_container;
+    Mode                m_mode;
 
   };
 }
