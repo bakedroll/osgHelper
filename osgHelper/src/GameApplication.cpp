@@ -15,54 +15,75 @@ using namespace std;
 namespace osgHelper
 {
 
-  GameApplication::GameApplication() = default;
-  GameApplication::~GameApplication() = default;
+GameApplication::GameApplication()
+  : m_injector(nullptr)
+{
+}
 
-  void GameApplication::onException(const std::string& message)
+GameApplication::~GameApplication() = default;
+
+void GameApplication::onException(const std::string& message)
+{
+}
+
+int GameApplication::safeExecute(const std::function<int()>& func)
+{
+  try
   {
+    return func();
+  }
+  catch (osgHelper::GameException& e)
+  {
+    OSGH_LOG_FATAL(std::string("Exception: ") + e.getMessage());
+    onException(e.getMessage());
+  }
+  catch (exception& e)
+  {
+    OSGH_LOG_FATAL(std::string("Exception: ") + std::string(e.what()));
+    onException(e.what());
   }
 
-  int GameApplication::safeExecute(std::function<int()> func)
-  {
-    try
-    {
-      return func();
-    }
-    catch (osgHelper::GameException& e)
-    {
-      OSGH_LOG_FATAL(std::string("Exception: ") + e.getMessage());
-      onException(e.getMessage());
-    }
-    catch (exception& e)
-    {
-      OSGH_LOG_FATAL(std::string("Exception: ") + std::string(e.what()));
-      onException(e.what());
-    }
+  return -1;
+}
 
-    return -1;
-  }
+void GameApplication::initialize(osgHelper::ioc::Injector& injector)
+{
+}
 
-  void GameApplication::initialize(osgHelper::ioc::Injector& injector)
-  {
-  }
+void GameApplication::deinitialize()
+{
+}
 
-  void GameApplication::deinitialize()
-  {
-  }
+void GameApplication::registerComponents(osgHelper::ioc::InjectionContainer& container)
+{
+}
 
-  void GameApplication::registerComponents(osgHelper::ioc::InjectionContainer& container)
-  {
-  }
+void GameApplication::registerEssentialComponents()
+{
+  m_container.registerSingletonType<osgHelper::ShaderFactory>();
+  m_container.registerSingletonType<osgHelper::ResourceManager>();
+  m_container.registerSingletonType<osgHelper::TextureFactory>();
+}
 
-  void GameApplication::registerEssentialComponents()
-  {
-    m_container.registerSingletonType<osgHelper::ShaderFactory>();
-    m_container.registerSingletonType<osgHelper::ResourceManager>();
-    m_container.registerSingletonType<osgHelper::TextureFactory>();
-  }
+osgHelper::ioc::InjectionContainer& GameApplication::container()
+{
+  return m_container;
+}
 
-  osgHelper::ioc::InjectionContainer& GameApplication::container()
-  {
-    return m_container;
-  }
+osgHelper::ioc::Injector& GameApplication::injector() const
+{
+  return *m_injector;
+}
+
+void GameApplication::setupIOC(osgHelper::ioc::Injector::Mode injectorMode)
+{
+  auto& c = container();
+
+  registerComponents(c);
+
+  m_injector = std::make_unique<osgHelper::ioc::Injector>(c, injectorMode);
+
+  initialize(*m_injector);
+}
+
 }
