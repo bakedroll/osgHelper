@@ -19,15 +19,12 @@ namespace osgHelper
 
   protected:
     virtual void initialize(osgHelper::ioc::Injector& injector);
-    virtual void deinitialize();
 
     virtual void onException(const std::string& message);
     int safeExecute(const std::function<int()>& func);
 
     virtual void registerComponents(osgHelper::ioc::InjectionContainer& container);
     void registerEssentialComponents();
-
-    osgHelper::ioc::InjectionContainer& container();
 
     osgHelper::ioc::Injector& injector() const;
 

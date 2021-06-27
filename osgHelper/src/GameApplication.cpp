@@ -20,7 +20,11 @@ GameApplication::GameApplication()
 {
 }
 
-GameApplication::~GameApplication() = default;
+GameApplication::~GameApplication()
+{
+  m_container.clear();
+  osgHelper::LogManager::clearInstance();
+}
 
 void GameApplication::onException(const std::string& message)
 {
@@ -50,10 +54,6 @@ void GameApplication::initialize(osgHelper::ioc::Injector& injector)
 {
 }
 
-void GameApplication::deinitialize()
-{
-}
-
 void GameApplication::registerComponents(osgHelper::ioc::InjectionContainer& container)
 {
 }
@@ -65,11 +65,6 @@ void GameApplication::registerEssentialComponents()
   m_container.registerSingletonType<osgHelper::TextureFactory>();
 }
 
-osgHelper::ioc::InjectionContainer& GameApplication::container()
-{
-  return m_container;
-}
-
 osgHelper::ioc::Injector& GameApplication::injector() const
 {
   return *m_injector;
@@ -77,12 +72,9 @@ osgHelper::ioc::Injector& GameApplication::injector() const
 
 void GameApplication::setupIOC(osgHelper::ioc::Injector::Mode injectorMode)
 {
-  auto& c = container();
+  m_injector = std::make_unique<osgHelper::ioc::Injector>(m_container, injectorMode);
 
-  registerComponents(c);
-
-  m_injector = std::make_unique<osgHelper::ioc::Injector>(c, injectorMode);
-
+  registerComponents(m_container);
   initialize(*m_injector);
 }
 
