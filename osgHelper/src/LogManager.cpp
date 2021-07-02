@@ -31,10 +31,10 @@ namespace osgHelper
 
   struct LogManager::Impl
   {
-    Impl() : minSeverity(DEBUG) {}
+    Impl() : minSeverity(Severity::DEBUG) {}
 
     std::vector<osg::ref_ptr<Logger>> loggerList;
-    Severety minSeverity;
+    Severity minSeverity;
 
     std::mutex mutex;
   };
@@ -49,18 +49,23 @@ namespace osgHelper
 
   void LogManager::clearInstance()
   {
+    if (!m_instance)
+    {
+      return;
+    }
+
     m_instance->m->loggerList.clear();
     m_instance.release();
   }
 
-  void LogManager::setMinSeverity(Severety severity)
+  void LogManager::setMinSeverity(Severity severity)
   {
     std::lock_guard<std::mutex> lock(m->mutex);
 
     m->minSeverity = severity;
   }
 
-  void LogManager::log(Severety severety, const std::string& message)
+  void LogManager::log(Severity severety, const std::string& message)
   {
     std::lock_guard<std::mutex> lock(m->mutex);
 
@@ -70,13 +75,13 @@ namespace osgHelper
     std::string now = currentTime("%Y-%m-%d %H:%M:%S");
     std::string sev;
 
-    if (severety == DEBUG)
+    if (severety == Severity::DEBUG)
       sev = "DEBUG";
-    else if (severety == INFO)
+    else if (severety == Severity::INFO)
       sev = "INFO";
-    else if (severety == WARNING)
+    else if (severety == Severity::WARNING)
       sev = "WARN";
-    else if (severety == FATAL)
+    else if (severety == Severity::FATAL)
       sev = "FATAL";
     else
       assert(false);

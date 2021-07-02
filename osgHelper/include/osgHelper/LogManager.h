@@ -9,14 +9,14 @@
 #define OSGH_LOG(sev, msg) osgHelper::LogManager::getInstance()->log(sev, msg)
 
 #ifdef _DEBUG
-#define OSGH_LOG_DEBUG(msg) OSGH_LOG(osgHelper::LogManager::DEBUG, msg)
+#define OSGH_LOG_DEBUG(msg) OSGH_LOG(osgHelper::LogManager::Severity::DEBUG, msg)
 #else
 #define OSGH_LOG_DEBUG(msg)
 #endif
 
-#define OSGH_LOG_INFO(msg) OSGH_LOG(osgHelper::LogManager::INFO, msg)
-#define OSGH_LOG_WARN(msg) OSGH_LOG(osgHelper::LogManager::WARNING, msg)
-#define OSGH_LOG_FATAL(msg) OSGH_LOG(osgHelper::LogManager::FATAL, msg)
+#define OSGH_LOG_INFO(msg) OSGH_LOG(osgHelper::LogManager::Severity::INFO, msg)
+#define OSGH_LOG_WARN(msg) OSGH_LOG(osgHelper::LogManager::Severity::WARNING, msg)
+#define OSGH_LOG_FATAL(msg) OSGH_LOG(osgHelper::LogManager::Severity::FATAL, msg)
 
 namespace osgHelper
 {
@@ -35,7 +35,7 @@ namespace osgHelper
   class LogManager : public osg::Referenced
   {
   public:
-    enum Severety
+    enum class Severity
     {
       DEBUG = 0,
       INFO = 1,
@@ -48,8 +48,8 @@ namespace osgHelper
     static Ptr getInstance();
     static void clearInstance();
 
-    void setMinSeverity(Severety severity);
-    void log(Severety severety, const std::string& message);
+    void setMinSeverity(Severity severity);
+    void log(Severity severety, const std::string& message);
 
     void addLogger(osg::ref_ptr<Logger> logger);
 
