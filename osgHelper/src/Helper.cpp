@@ -7,45 +7,41 @@
 #include <osg/Version>
 #include <osgUtil/TangentSpaceGenerator>
 
-using namespace osg;
-using namespace osgText;
-using namespace std;
-
 // Z  Y
 // | /
 // |/
 // +----- X
 
-void osgHelper::rotateVector(Vec3* vec, Quat quat)
+void osgHelper::rotateVector(osg:: Vec3* vec, const osg::Quat& quat)
 {
-	Matrixd mat = Matrixd::identity();
+	osg::Matrixd mat = osg::Matrixd::identity();
 	mat.setRotate(quat);
 
 	transformVector(vec, &mat);
 }
 
-void osgHelper::transformVector(Vec3* vec, Matrixd* mat)
+void osgHelper::transformVector(osg::Vec3* vec, osg::Matrixd* mat)
 {
-	Vec3 cpy(*vec);
+	osg::Vec3 cpy(*vec);
 
 	(*vec)[0] = (*mat)(0, 0)*cpy[0] + (*mat)(1, 0)*cpy[1] + (*mat)(2, 0)*cpy[2] + (*mat)(3, 0);
 	(*vec)[1] = (*mat)(0, 1)*cpy[0] + (*mat)(1, 1)*cpy[1] + (*mat)(2, 1)*cpy[2] + (*mat)(3, 1);
 	(*vec)[2] = (*mat)(0, 2)*cpy[0] + (*mat)(1, 2)*cpy[1] + (*mat)(2, 2)*cpy[2] + (*mat)(3, 2);
 }
 
-Quat osgHelper::getQuatFromEuler(double pitch, double roll, double yaw)
+osg::Quat osgHelper::getQuatFromEuler(double pitch, double roll, double yaw)
 {
-	Quat q;
+	osg::Quat q;
 
-	double c1 = cos(roll / 2.0);
-	double s1 = sin(roll / 2.0);
-	double c2 = cos(yaw / 2.0);
-	double s2 = sin(yaw / 2.0);
-	double c3 = cos(pitch / 2.0);
-	double s3 = sin(pitch / 2.0);
+	const auto c1 = cos(roll / 2.0);
+	const auto s1 = sin(roll / 2.0);
+	const auto c2 = cos(yaw / 2.0);
+	const auto s2 = sin(yaw / 2.0);
+	const auto c3 = cos(pitch / 2.0);
+	const auto s3 = sin(pitch / 2.0);
 
-	double c1c2 = c1*c2;
-	double s1s2 = s1*s2;
+	const auto c1c2 = c1*c2;
+	const auto s1s2 = s1*s2;
 
 	q[0] = c1c2*s3 + s1s2*c3;
 	q[1] = s1*c2*c3 + c1*s2*s3;
@@ -55,47 +51,47 @@ Quat osgHelper::getQuatFromEuler(double pitch, double roll, double yaw)
 	return q;
 }
 
-Matrix osgHelper::getMatrixFromEuler(double pitch, double roll, double yaw)
+osg::Matrix osgHelper::getMatrixFromEuler(double pitch, double roll, double yaw)
 {
-	Quat quat = getQuatFromEuler(pitch, roll, yaw);
+	const auto quat = getQuatFromEuler(pitch, roll, yaw);
 
-	Matrix mat;
+	osg::Matrix mat;
 	mat.setRotate(quat);
 
 	return mat;
 }
 
-Vec3f osgHelper::getVec3FromEuler(double pitch, double roll, double yaw, Vec3 origin)
+osg::Vec3f osgHelper::getVec3FromEuler(double pitch, double roll, double yaw, osg::Vec3 origin)
 {
 	rotateVector(&origin, osgHelper::getQuatFromEuler(pitch, roll, yaw));
 
 	return origin;
 }
 
-Vec2f osgHelper::getPolarFromCartesian(Vec3f cartesian)
+osg::Vec2f osgHelper::getPolarFromCartesian(const osg::Vec3f& cartesian)
 {
-	Vec2f result;
+	osg::Vec2f result;
 
-	result.x() = (atan2(-cartesian.x(), cartesian.y()) + C_PI) / (2.0f * C_PI);
-	float xyLen = sqrt(cartesian.x() * cartesian.x() + cartesian.y() * cartesian.y());
-	result.y() = (atan2(-cartesian.z(), xyLen) + C_PI / 2.0f) / C_PI;
+	result.x()       = (atan2(-cartesian.x(), cartesian.y()) + C_PI) / (2.0f * C_PI);
+	const auto xyLen = sqrt(cartesian.x() * cartesian.x() + cartesian.y() * cartesian.y());
+	result.y()       = (atan2(-cartesian.z(), xyLen) + C_PI / 2.0f) / C_PI;
 
 	return result;
 }
 
-Vec3f osgHelper::getCartesianFromPolar(Vec2f polar)
+osg::Vec3f osgHelper::getCartesianFromPolar(const osg::Vec2f& polar)
 {
-	Matrix mat = Matrix::rotate(getQuatFromEuler(polar.x(), 0.0f, polar.y()));
+	const auto mat = osg::Matrix::rotate(getQuatFromEuler(polar.x(), 0.0f, polar.y()));
 
-	return Vec3f(0.0f, 1.0f, 0.0f) * mat;
+	return osg::Vec3f(0.0f, 1.0f, 0.0f) * mat;
 }
 
-Vec2f osgHelper::getTextSize(ref_ptr<Text> text)
+osg::Vec2f osgHelper::getTextSize(const osg::ref_ptr<osgText::Text>& text)
 {
-	BoundingBox bb;
+	osg::BoundingBox bb;
 
-	Text::TextureGlyphQuadMap glyphs = text->getTextureGlyphQuadMap();
-	for (Text::TextureGlyphQuadMap::iterator it = glyphs.begin(); it != glyphs.end(); ++it)
+	osgText::Text::TextureGlyphQuadMap glyphs = text->getTextureGlyphQuadMap();
+	for (osgText::Text::TextureGlyphQuadMap::iterator it = glyphs.begin(); it != glyphs.end(); ++it)
 	{
 #if OSG_MIN_VERSION_REQUIRED(3, 6, 4)
 
@@ -116,67 +112,68 @@ Vec2f osgHelper::getTextSize(ref_ptr<Text> text)
 #endif
 	}
 
-	float width = bb.xMax() - bb.xMin();
-	float height = bb.yMax() - bb.yMin();
+  const auto width  = bb.xMax() - bb.xMin();
+  const auto height = bb.yMax() - bb.yMin();
 
-	return Vec2f(width, height);
+	return osg::Vec2f(width, height);
 }
 
-bool osgHelper::pointInRect(Vec2f point, Vec2f leftbottom, Vec2f righttop)
+bool osgHelper::pointInRect(const osg::Vec2f& point, const osg::Vec2f& leftbottom, const osg::Vec2f& righttop)
 {
 	return (point.x() >= leftbottom.x() && point.y() >= leftbottom.y()
 		&& point.x() <= righttop.x() && point.y() <= righttop.y());
 }
 
-bool osgHelper::sphereLineIntersection(Vec3f sphereCenter, float sphereRadius, Vec3f lineOrigin, Vec3f lineDirectionNormalized, Vec3f& result)
+bool osgHelper::sphereLineIntersection(const osg::Vec3f& sphereCenter,
+                                       float sphereRadius,
+                                       const osg::Vec3f& lineOrigin,
+                                       const osg::Vec3f& lineDirectionNormalized,
+                                       osg::Vec3f& result)
 {
-	float a = lineDirectionNormalized * lineDirectionNormalized;
-	float b = lineDirectionNormalized * ((lineOrigin - sphereCenter) * 2.0f);
-	float c = (sphereCenter * sphereCenter) + (lineOrigin * lineOrigin) - 2.0f * (lineOrigin * sphereCenter) - sphereRadius * sphereRadius;
-	float D = b * b + (-4.0f) * a * c;
+  const auto a = lineDirectionNormalized * lineDirectionNormalized;
+  const auto b = lineDirectionNormalized * ((lineOrigin - sphereCenter) * 2.0f);
+  const auto c = (sphereCenter * sphereCenter) + (lineOrigin * lineOrigin) -
+                 2.0f * (lineOrigin * sphereCenter) -
+                 sphereRadius * sphereRadius;
 
-	if (D < 0)
-	{
-		return false;
-	}
+  auto D = b * b + (-4.0f) * a * c;
 
-	D = sqrtf(D);
+  if (D < 0) {
+    return false;
+  }
 
-	float t = a == 0.0f ? 1.0f : (-0.5f) * (b + D) / a;
-	if (t > 0.0f)
-	{
-		result = lineOrigin + lineDirectionNormalized * t;
-	}
-	else
-	{
-		return false;
-	}
+  D = sqrtf(D);
 
-	return true;
+  const auto t = a == 0.0f ? 1.0f : (-0.5f) * (b + D) / a;
+  if (t > 0.0f) {
+    result = lineOrigin + lineDirectionNormalized * t;
+  } else {
+    return false;
+  }
+
+  return true;
 }
-float osgHelper::pointLineDistance(osg::Vec3f origin, Vec3 direction, Vec3f point)
+float osgHelper::pointLineDistance(const osg::Vec3f& origin, const osg::Vec3& direction, const osg::Vec3f& point)
 {
-	Vec3f vec = direction ^ (point - origin);
+	const auto vec = direction ^ (point - origin);
 
 	return vec.length();
 }
 
-void osgHelper::generateTangentAndBinormal(Node* node)
+void osgHelper::generateTangentAndBinormal(osg::Node* node)
 {
-	ref_ptr<Group> group = node->asGroup();
-	ref_ptr<Geode> geode = node->asGeode();
+	osg::ref_ptr<osg::Group> group = node->asGroup();
+	osg::ref_ptr<osg::Geode> geode = node->asGeode();
 
   if (geode)
   {
     for (unsigned int i = 0; i<geode->getNumDrawables(); i++)
     {
-      Geometry *geometry = geode->getDrawable(i)->asGeometry();
+			osg::Geometry *geometry = geode->getDrawable(i)->asGeometry();
       if (geometry)
       {
-        ref_ptr<osgUtil::TangentSpaceGenerator> tsg = new osgUtil::TangentSpaceGenerator();
+				osg::ref_ptr<osgUtil::TangentSpaceGenerator> tsg = new osgUtil::TangentSpaceGenerator();
         tsg->generate(geometry);
-
-        osg::Vec4Array* arr = tsg->getTangentArray();
 
         geometry->setVertexAttribArray(6, tsg->getTangentArray());
         geometry->setVertexAttribBinding(6, osg::Geometry::BIND_PER_VERTEX);
@@ -186,8 +183,6 @@ void osgHelper::generateTangentAndBinormal(Node* node)
         geometry->setVertexAttribNormalize(7, GL_FALSE);
 
         geometry->setUseVertexBufferObjects(true);
-        //geometry->getVertexAttribArray(6)->dirty();
-        //geometry->getVertexAttribArray(7)->dirty();
 
         tsg.release();
       }
@@ -200,12 +195,12 @@ void osgHelper::generateTangentAndBinormal(Node* node)
 	}
 }
 
-StateAttribute::GLModeValue osgHelper::glModeValueFromBool(bool on)
+osg::StateAttribute::GLModeValue osgHelper::glModeValueFromBool(bool on)
 {
-	return on ? StateAttribute::ON : StateAttribute::OFF;
+	return on ? osg::StateAttribute::ON : osg::StateAttribute::OFF;
 }
 
-string osgHelper::lowerString(string str)
+std::string osgHelper::lowerString(std::string str)
 {
 #ifdef WIN32
 	transform(str.begin(), str.end(), str.begin(), tolower);
@@ -216,9 +211,9 @@ string osgHelper::lowerString(string str)
 	return str;
 }
 
-ref_ptr<Text> osgHelper::createTextNode(string text, float characterSize, ref_ptr<Font> font)
+osg::ref_ptr<osgText::Text> osgHelper::createTextNode(const std::string& text, float characterSize, const osg::ref_ptr<osgText::Font>& font)
 {
-	ref_ptr<Text> textNode = new Text();
+	osg::ref_ptr<osgText::Text> textNode = new osgText::Text();
 
 	if (font.valid())
 	{
@@ -235,84 +230,85 @@ ref_ptr<Text> osgHelper::createTextNode(string text, float characterSize, ref_pt
 	return textNode;
 }
 
-ref_ptr<Geometry> osgHelper::createQuadGeometry(float left, float right, float bottom, float top, float z, QuadOrientation orientation, bool flipped)
+osg::ref_ptr<osg::Geometry>
+osgHelper::createQuadGeometry(float left, float right, float bottom, float top,
+                              float z, QuadOrientation orientation,
+                              bool flipped)
 {
-	ref_ptr<Geometry> geo = new Geometry();
+  osg::ref_ptr<osg::Geometry> geo = new osg::Geometry();
 
-	ref_ptr<Vec3Array> verts = new Vec3Array();
-	ref_ptr<Vec3Array> normals = new Vec3Array();
+  osg::ref_ptr<osg::Vec3Array> verts = new osg::Vec3Array();
+  osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array();
 
-	float normal = flipped ? 1.0f : -1.0f;
+  const auto normal = flipped ? 1.0f : -1.0f;
 
-	switch (orientation)
-	{
-	case XY:
-		verts->push_back(Vec3(left, bottom, z));
-		verts->push_back(Vec3(left, top, z));
-		verts->push_back(Vec3(right, top, z));
-		verts->push_back(Vec3(right, bottom, z));
+  switch (orientation)
+  {
+  case QuadOrientation::XY:
+    verts->push_back(osg::Vec3(left, bottom, z));
+    verts->push_back(osg::Vec3(left, top, z));
+    verts->push_back(osg::Vec3(right, top, z));
+    verts->push_back(osg::Vec3(right, bottom, z));
 
-		normals->push_back(Vec3(0.0f, 0.0f, normal));
-		break;
-	case XZ:
-		verts->push_back(Vec3(left, z, bottom));
-		verts->push_back(Vec3(right, z, bottom));
-		verts->push_back(Vec3(right, z, top));
-		verts->push_back(Vec3(left, z, top));
+    normals->push_back(osg::Vec3(0.0f, 0.0f, normal));
+    break;
+  case QuadOrientation::XZ:
+    verts->push_back(osg::Vec3(left, z, bottom));
+    verts->push_back(osg::Vec3(right, z, bottom));
+    verts->push_back(osg::Vec3(right, z, top));
+    verts->push_back(osg::Vec3(left, z, top));
 
-		normals->push_back(Vec3(0.0f, normal, 0.0f));
-		break;
-	case YZ:
-		verts->push_back(Vec3(z, left, bottom));
-		verts->push_back(Vec3(z, left, top));
-		verts->push_back(Vec3(z, right, top));
-		verts->push_back(Vec3(z, right, bottom));
+    normals->push_back(osg::Vec3(0.0f, normal, 0.0f));
+    break;
+  case QuadOrientation::YZ:
+    verts->push_back(osg::Vec3(z, left, bottom));
+    verts->push_back(osg::Vec3(z, left, top));
+    verts->push_back(osg::Vec3(z, right, top));
+    verts->push_back(osg::Vec3(z, right, bottom));
 
-		normals->push_back(Vec3(normal, 0.0f, 0.0f));
-		break;
-	}
+    normals->push_back(osg::Vec3(normal, 0.0f, 0.0f));
+    break;
+  }
 
-	ref_ptr<DrawElementsUInt> indices = new DrawElementsUInt(PrimitiveSet::POLYGON, 0);
+  osg::ref_ptr<osg::DrawElementsUInt> indices =
+      new osg::DrawElementsUInt(osg::PrimitiveSet::POLYGON, 0);
 
-	if (flipped)
-	{
-		indices->push_back(3);
-		indices->push_back(2);
-		indices->push_back(1);
-		indices->push_back(0);
-	}
-	else
-	{
-		indices->push_back(0);
-		indices->push_back(1);
-		indices->push_back(2);
-		indices->push_back(3);
-	}
+  if (flipped) {
+    indices->push_back(3);
+    indices->push_back(2);
+    indices->push_back(1);
+    indices->push_back(0);
+  } else {
+    indices->push_back(0);
+    indices->push_back(1);
+    indices->push_back(2);
+    indices->push_back(3);
+  }
 
-	//ref_ptr<Vec4Array> colors = new Vec4Array();
-	//colors->push_back(color);
+  // ref_ptr<Vec4Array> colors = new Vec4Array();
+  // colors->push_back(color);
 
-	ref_ptr<Vec2Array> texcoords = new Vec2Array();
-	texcoords->push_back(Vec2(0.0f, 1.0f));
-	texcoords->push_back(Vec2(0.0f, 0.0f));
-	texcoords->push_back(Vec2(1.0f, 0.0f));
-  texcoords->push_back(Vec2(1.0f, 1.0f));
+  osg::ref_ptr<osg::Vec2Array> texcoords = new osg::Vec2Array();
+  texcoords->push_back(osg::Vec2(0.0f, 1.0f));
+  texcoords->push_back(osg::Vec2(0.0f, 0.0f));
+  texcoords->push_back(osg::Vec2(1.0f, 0.0f));
+  texcoords->push_back(osg::Vec2(1.0f, 1.0f));
 
 	geo->setTexCoordArray(0, texcoords);
 	geo->addPrimitiveSet(indices);
 	geo->setVertexArray(verts);
 	geo->setNormalArray(normals);
-	geo->setNormalBinding(Geometry::BIND_OVERALL);
+	geo->setNormalBinding(osg::Geometry::BIND_OVERALL);
 	//geo->setColorArray(colors);
 	//geo->setColorBinding(osg::Geometry::BIND_OVERALL);
 
 	return geo;
 }
 
-osgHelper::StringList& osgHelper::splitString(const string &s, char delim, StringList &elems)
+osgHelper::StringList& osgHelper::splitString(const std::string &s, char delim, StringList &elems)
 {
-	stringstream ss(s);
-	string item;
+	std::stringstream ss(s);
+	std::string item;
 	while (getline(ss, item, delim))
 	{
 		elems.push_back(item);
@@ -321,16 +317,16 @@ osgHelper::StringList& osgHelper::splitString(const string &s, char delim, Strin
 	return elems;
 }
 
-osgHelper::StringList osgHelper::splitString(const string &s, char delim)
+osgHelper::StringList osgHelper::splitString(const std::string &s, char delim)
 {
 	StringList elems;
 	splitString(s, delim, elems);
 	return elems;
 }
 
-string osgHelper::utf8ToLatin1(const char* in)
+std::string osgHelper::utf8ToLatin1(const char* in)
 {
-	string out;
+	std::string out;
 	if (in == nullptr)
 	{
 		return out;
@@ -339,7 +335,7 @@ string osgHelper::utf8ToLatin1(const char* in)
 	unsigned int codepoint = 0;
 	while (*in != 0)
 	{
-		unsigned char ch = static_cast<unsigned char>(*in);
+		const auto ch = static_cast<unsigned char>(*in);
 		if (ch <= 0x7f)
 			codepoint = ch;
 		else if (ch <= 0xbf)
