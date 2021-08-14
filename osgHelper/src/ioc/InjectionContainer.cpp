@@ -22,30 +22,42 @@ using SingletonObservers = std::vector<SingletonObserver>;
 
 InjectionContainer::InjectionContainer() = default;
 
-InjectionContainer::Classes& InjectionContainer::classes()
+const InjectionContainer::TypeNewInstanceFuncMap& InjectionContainer::getRegisteredTypes() const
 {
-  return m_registeredClasses;
+  return m_registeredTypes;
 }
 
-InjectionContainer::Singletons& InjectionContainer::singletons()
+InjectionContainer::SingletonTypeInfosMap& InjectionContainer::getRegisteredSingletonTypes()
 {
-  return m_registeredSingletons;
+  return m_registeredSingletonTypes;
+}
+
+const InjectionContainer::InterfaceTypesSetMap& InjectionContainer::getRegisteredInterfaceTypes() const
+{
+  return m_registeredInterfaceTypes;
+}
+
+InjectionContainer::InterfaceSingletonTypeInfosMap& InjectionContainer::getRegisteredInterfaceSingletonTypes()
+{
+  return m_registeredInterfaceSingletonTypes;
 }
 
 void InjectionContainer::clear()
 {
 #ifdef _DEBUG
   SingletonObservers singletonObservers;
-  singletonObservers.reserve(m_registeredSingletons.size());
+  singletonObservers.reserve(m_registeredSingletonTypes.size());
 
-  for (const auto& singleton : m_registeredSingletons)
+  for (const auto& singleton : m_registeredSingletonTypes)
   {
-    singletonObservers.push_back({ singleton.second, singleton.first.name() });
+    singletonObservers.push_back({ singleton.second.instance, singleton.first.name() });
   }
+#endif
 
-  m_registeredClasses.clear();
-  m_registeredSingletons.clear();
+  m_registeredTypes.clear();
+  m_registeredSingletonTypes.clear();
 
+#ifdef _DEBUG
   for (const auto& it : singletonObservers)
   {
     if (!it.ptr.valid())

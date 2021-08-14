@@ -70,9 +70,9 @@ osgHelper::ioc::Injector& GameApplication::injector() const
   return *m_injector;
 }
 
-void GameApplication::setupIOC(osgHelper::ioc::Injector::Mode injectorMode)
+void GameApplication::setupIOC()
 {
-  m_injector = std::make_unique<osgHelper::ioc::Injector>(m_container, injectorMode);
+  m_injector = std::make_unique<osgHelper::ioc::Injector>(m_container);
 
   registerComponents(m_container);
   initialize(*m_injector);

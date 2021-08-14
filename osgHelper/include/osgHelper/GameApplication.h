@@ -14,8 +14,7 @@ namespace osgHelper
     GameApplication();
     virtual ~GameApplication();
 
-    void setupIOC(osgHelper::ioc::Injector::Mode injectorMode =
-                      osgHelper::ioc::Injector::Mode::OnlyRegisteredClasses);
+    void setupIOC();
 
   protected:
     virtual void initialize(osgHelper::ioc::Injector& injector);
