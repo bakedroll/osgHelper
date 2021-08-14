@@ -1,100 +1,37 @@
 #include <osgHelper/ShaderFactory.h>
-
-#include <osgHelper/Macros.h>
+#include <osgHelper/ShaderBlueprint.h>
 
 namespace osgHelper
 {
-  struct ShaderBlueprint::Impl
+
+ShaderFactory::ShaderFactory(ioc::Injector& injector)
+  : IShaderFactory()
+{
+}
+
+ShaderFactory::~ShaderFactory() = default;
+
+osg::ref_ptr<osg::Shader> ShaderFactory::fromSourceText(const std::string& key, const std::string& source,
+                                                        osg::Shader::Type type)
+{
+  const auto it = m_shaderCache.find(key);
+
+  if (it != m_shaderCache.end())
   {
-    Impl()
-      : version(120)
-      , type(osg::Shader::FRAGMENT)
-    {}
-
-    ~Impl() {}
-
-    int version;
-    osg::Shader::Type type;
-    std::vector<std::string> extensions;
-    std::vector<std::string> modules;
-
-  };
-
-  ShaderBlueprint::ShaderBlueprint()
-    : osg::Referenced()
-    , m(new Impl())
-  {
+    return it->second;
   }
 
-  ShaderBlueprint::~ShaderBlueprint()
-  {
-  }
+  osg::ref_ptr<osg::Shader> shader = new osg::Shader(type);
+  shader->setShaderSource(source);
 
-  osg::ref_ptr<ShaderBlueprint> ShaderBlueprint::version(int shaderVersion)
-  {
-    m->version = shaderVersion;
-    return this;
-  }
+  m_shaderCache.insert(ShaderDictionary::value_type(key, shader));
 
-  osg::ref_ptr<ShaderBlueprint> ShaderBlueprint::type(osg::Shader::Type shaderType)
-  {
-    m->type = shaderType;
-    return this;
-  }
+  return shader;
+}
 
-  osg::ref_ptr<ShaderBlueprint> ShaderBlueprint::extension(const std::string& extName)
-  {
-    m->extensions.push_back(extName);
-    return this;
-  }
+osg::ref_ptr<IShaderBlueprint> ShaderFactory::make() const
+{
+  return new ShaderBlueprint();
+}
 
-  osg::ref_ptr<ShaderBlueprint> ShaderBlueprint::module(const std::string& module)
-  {
-    m->modules.push_back(module);
-    return this;
-  }
-
-  osg::ref_ptr<osg::Shader> ShaderBlueprint::build()
-  {
-    assert_return(!m->modules.empty(), nullptr);
-
-    osg::ref_ptr<osg::Shader> shader = new osg::Shader(m->type);
-    std::string code = "#version " + std::to_string(m->version) + "\n";
-
-    for (auto& extension : m->extensions)
-      code += ("#extension " + extension + " : enable\n");
-
-    for (auto& module : m->modules)
-      code += (module + "\n");
-
-    shader->setShaderSource(code);
-    return shader;
-  }
-
-  ShaderFactory::ShaderFactory(ioc::Injector& injector)
-    : AbstractFactory<ShaderBlueprint>(injector)
-  {
-  }
-
-  ShaderFactory::~ShaderFactory()
-  {
-  }
-
-  osg::ref_ptr<osg::Shader> ShaderFactory::fromSourceText(const std::string& key, const std::string& source,
-                                                          osg::Shader::Type type)
-  {
-    ShaderDictionary::iterator it = m_shaderCache.find(key);
-
-    if (it != m_shaderCache.end())
-    {
-      return it->second;
-    }
-
-    osg::ref_ptr<osg::Shader> shader = new osg::Shader(type);
-    shader->setShaderSource(source);
-
-    m_shaderCache.insert(ShaderDictionary::value_type(key, shader));
-
-    return shader;
-  }
 }

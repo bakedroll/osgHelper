@@ -12,6 +12,7 @@ namespace osgHelper
 {
 
 ResourceManager::ResourceManager(ioc::Injector& injector)
+  : IResourceManager()
 {
 }
 
@@ -19,13 +20,13 @@ ResourceManager::~ResourceManager() = default;
 
 std::string ResourceManager::loadText(const std::string& resourceKey)
 {
-  const auto textRes = dynamic_cast<TextResource*>(loadObject(resourceKey, TEXT).get());
+  const auto textRes = dynamic_cast<TextResource*>(loadObject(resourceKey, ResourceType::Text).get());
   return textRes ? textRes->text : "";
 }
 
 char* ResourceManager::loadBinary(const std::string& resourceKey)
 {
-  const auto binRes = dynamic_cast<BinaryResource*>(loadObject(resourceKey, BINARY).get());
+  const auto binRes = dynamic_cast<BinaryResource*>(loadObject(resourceKey, ResourceType::Binary).get());
   return binRes ? binRes->getBytes() : nullptr;
 }
 
@@ -41,10 +42,10 @@ osg::ref_ptr<osgText::Font> ResourceManager::loadFont(const std::string& resourc
 
 osg::ref_ptr<osg::Shader> ResourceManager::loadShader(const std::string& resourceKey, osg::Shader::Type type)
 {
-  return dynamic_cast<osg::Shader*>(loadObject(resourceKey, SHADER, type).get());
+  return dynamic_cast<osg::Shader*>(loadObject(resourceKey, ResourceType::Shader, type).get());
 }
 
-void ResourceManager::setResourceLoader(const osg::ref_ptr<ResourceLoader>& loader)
+void ResourceManager::setResourceLoader(const osg::ref_ptr<IResourceLoader>& loader)
 {
   m_resourceLoader = loader;
 }
@@ -75,7 +76,7 @@ osg::ref_ptr<osgText::Font> ResourceManager::getDefaultFont()
   return m_defaultFont;
 }
 
-osg::ref_ptr<ResourceLoader> ResourceManager::resourceLoader()
+osg::ref_ptr<IResourceLoader> ResourceManager::resourceLoader()
 {
   if (!m_resourceLoader.valid())
   {
@@ -120,28 +121,28 @@ osg::ref_ptr<osg::Object> ResourceManager::loadObject(const std::string& resourc
   auto length = 0LL;
   resourceLoader()->getResourceStream(resourceKey, stream, length);
 
-  if (type == DETECT)
+  if (type == ResourceType::Detect)
   {
-    auto rw  = osgDB::Registry::instance()->getReaderWriterForExtension(osgDB::getLowerCaseFileExtension(resourceKey));
-    auto res = rw->readObject(stream);
+    const auto rw = osgDB::Registry::instance()->getReaderWriterForExtension(osgDB::getLowerCaseFileExtension(resourceKey));
+    auto res      = rw->readObject(stream);
 
     obj = res.getObject();
   }
-  else if (type == TEXT)
+  else if (type == ResourceType::Text)
   {
     auto textRes = new TextResource();
     textRes->text = loadTextFromStream(stream, length);
 
     obj = textRes;
   }
-  else if (type == BINARY)
+  else if (type == ResourceType::Binary)
   {
     auto binRes = new BinaryResource();
     binRes->setBytes(loadBytesFromStream(stream, length));
 
     obj = binRes;
   }
-  else if (type == SHADER)
+  else if (type == ResourceType::Shader)
   {
     auto       shader = new osg::Shader(shaderType);
     const auto source = loadTextFromStream(stream, length);

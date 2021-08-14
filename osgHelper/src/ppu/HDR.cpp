@@ -1,6 +1,6 @@
 #include <osgHelper/ppu/HDR.h>
 #include <osgHelper/ppu/Shaders.h>
-#include <osgHelper/ShaderFactory.h>
+#include <osgHelper/IShaderFactory.h>
 #include <osgHelper/SimulationCallback.h>
 
 #include <osgDB/ReadFile>
@@ -36,7 +36,7 @@ private:
 struct HDR::Impl
 {
   explicit Impl(osgHelper::ioc::Injector& injector)
-    : shaderFactory(injector.inject<osgHelper::ShaderFactory>())
+    : shaderFactory(injector.inject<osgHelper::IShaderFactory>())
     , midGrey(5.0f)
     , hdrBlurSigma(4.0f)
     , hdrBlurRadius(5.0f)
@@ -48,7 +48,7 @@ struct HDR::Impl
     
   }
 
-  osg::ref_ptr<osgHelper::ShaderFactory> shaderFactory;
+  osg::ref_ptr<osgHelper::IShaderFactory> shaderFactory;
 
   float midGrey;
   float hdrBlurSigma;

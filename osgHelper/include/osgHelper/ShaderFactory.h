@@ -1,43 +1,24 @@
 #pragma once
 
-#include <osgHelper/AbstractFactory.h>
-
-#include <map>
-
-#include <osg/Shader>
+#include <osgHelper/IShaderFactory.h>
+#include <osgHelper/ioc/Injector.h>
 
 namespace osgHelper
 {
-  class ShaderBlueprint : public osg::Referenced
-  {
-  public:
-    ShaderBlueprint();
-    ~ShaderBlueprint();
 
-    osg::ref_ptr<ShaderBlueprint> version(int shaderVersion);
-    osg::ref_ptr<ShaderBlueprint> type(osg::Shader::Type shaderType);
-    osg::ref_ptr<ShaderBlueprint> extension(const std::string& extName);
-    osg::ref_ptr<ShaderBlueprint> module(const std::string& module);
+class ShaderFactory : public IShaderFactory
+{
+public:
+  explicit ShaderFactory(ioc::Injector& injector);
+  ~ShaderFactory() override;
 
-    osg::ref_ptr<osg::Shader> build();
+	osg::ref_ptr<osg::Shader> fromSourceText(const std::string& key, const std::string& source, osg::Shader::Type type) override;
+	osg::ref_ptr<IShaderBlueprint> make() const override;
 
-  private:
-    struct Impl;
-    std::unique_ptr<Impl> m;
+private:
+	using ShaderDictionary = std::map<std::string, osg::ref_ptr<osg::Shader>>;
 
-  };
+	ShaderDictionary m_shaderCache;
+};
 
-  class ShaderFactory : public AbstractFactory<ShaderBlueprint>
-	{
-	public:
-    explicit ShaderFactory(ioc::Injector& injector);
-    ~ShaderFactory();
-
-		osg::ref_ptr<osg::Shader> fromSourceText(const std::string& key, const std::string& source, osg::Shader::Type type);
-
-	private:
-		typedef std::map<std::string, osg::ref_ptr<osg::Shader>> ShaderDictionary;
-
-		ShaderDictionary m_shaderCache;
-	};
 }

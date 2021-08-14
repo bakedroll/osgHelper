@@ -1,7 +1,7 @@
 #include <osgHelper/ppu/FXAA.h>
 #include <osgHelper/ppu/Shaders.h>
 
-#include <osgHelper/ShaderFactory.h>
+#include <osgHelper/IShaderFactory.h>
 
 #include <osgPPU/ShaderAttribute.h>
 
@@ -11,12 +11,12 @@ namespace osgHelper::ppu
 struct FXAA::Impl
 {
   Impl(osgHelper::ioc::Injector& injector)
-    : shaderFactory(injector.inject<osgHelper::ShaderFactory>())
+    : shaderFactory(injector.inject<osgHelper::IShaderFactory>())
     , resolution(osg::Vec2f(512.0f, 512.0f))
   {
   }
 
-  osg::ref_ptr<osgHelper::ShaderFactory> shaderFactory;
+  osg::ref_ptr<osgHelper::IShaderFactory> shaderFactory;
 
   osg::ref_ptr<osgPPU::UnitInOut> unitFxaa;
   osg::Vec2f resolution;

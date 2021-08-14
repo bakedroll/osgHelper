@@ -1,6 +1,6 @@
 #include <osgHelper/ppu/DOF.h>
 #include <osgHelper/ppu/Shaders.h>
-#include <osgHelper/ShaderFactory.h>
+#include <osgHelper/IShaderFactory.h>
 
 #include <osgPPU/UnitInResampleOut.h>
 #include <osgPPU/ShaderAttribute.h>
@@ -13,7 +13,7 @@ namespace ppu
   struct DOF::Impl
   {
     Impl(osgHelper::ioc::Injector& injector)
-      : shaderFactory(injector.inject<osgHelper::ShaderFactory>())
+      : shaderFactory(injector.inject<osgHelper::IShaderFactory>())
       , gaussSigma(1.5f)
       , gaussRadius(5.0f)
       , focalLength(10.0f)
@@ -24,7 +24,7 @@ namespace ppu
       
     }
 
-    osg::ref_ptr<osgHelper::ShaderFactory> shaderFactory;
+    osg::ref_ptr<osgHelper::IShaderFactory> shaderFactory;
 
     float gaussSigma;
     float gaussRadius;

@@ -60,9 +60,9 @@ void GameApplication::registerComponents(osgHelper::ioc::InjectionContainer& con
 
 void GameApplication::registerEssentialComponents()
 {
-  m_container.registerSingletonType<osgHelper::ShaderFactory>();
-  m_container.registerSingletonType<osgHelper::ResourceManager>();
-  m_container.registerSingletonType<osgHelper::TextureFactory>();
+  m_container.registerSingletonInterfaceType<osgHelper::IShaderFactory, osgHelper::ShaderFactory>();
+  m_container.registerSingletonInterfaceType<osgHelper::IResourceManager, osgHelper::ResourceManager>();
+  m_container.registerSingletonInterfaceType<osgHelper::ITextureFactory, osgHelper::TextureFactory>();
 }
 
 osgHelper::ioc::Injector& GameApplication::injector() const
