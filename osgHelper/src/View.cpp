@@ -18,8 +18,6 @@
 #include <osgDB/WriteFile>
 #include <osgDB/ReadFile>
 
-#include <cassert>
-
 namespace osgHelper
 {
 

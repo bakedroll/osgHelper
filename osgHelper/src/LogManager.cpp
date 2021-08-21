@@ -1,6 +1,6 @@
 #include "osgHelper/LogManager.h"
 
-#include <assert.h>
+#include <cassert>
 #include <chrono>
 #include <iostream>
 #include <mutex>
