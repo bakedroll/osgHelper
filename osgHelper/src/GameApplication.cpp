@@ -2,8 +2,6 @@
 
 #include <osgHelper/GameException.h>
 
-#include <future>
-
 #include <osgHelper/ShaderFactory.h>
 #include <osgHelper/TextureFactory.h>
 #include <osgHelper/ResourceManager.h>
