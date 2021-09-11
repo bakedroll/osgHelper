@@ -107,7 +107,7 @@ namespace osgHelper
     updateCameraAlignedQuads();
   }
 
-  void Camera::pickRay(float x, float y, osg::Vec3f& point, osg::Vec3f& direction) const
+  void Camera::pickLine(float x, float y, osg::Vec3f& origin, osg::Vec3f& target) const
   {
     const auto mappedX = (x * 2.0f) / m_resolution.x() - 1.0f;
     const auto mappedY = (y * 2.0f) / m_resolution.y() - 1.0f;
@@ -117,9 +117,16 @@ namespace osgHelper
 
     const auto mat = osg::Matrix::inverse(getViewMatrix() * getProjectionMatrix());
 
-    point     = near * mat;
-    direction = (far * mat) - point;
+    origin = near * mat;
+    target = far * mat;
+  }
 
+  void Camera::pickRay(float x, float y, osg::Vec3f& point, osg::Vec3f& direction) const
+  {
+    osg::Vec3f target;
+    pickLine(x, y, point, target);
+
+    direction = target - point;
     direction.normalize();
   }
 

@@ -41,6 +41,7 @@ namespace osgHelper
 
     void updateResolution(const osg::Vec2i& resolution);
 
+    void pickLine(float x, float y, osg::Vec3f& origin, osg::Vec3f& target) const;
     void pickRay(float x, float y, osg::Vec3f& point, osg::Vec3f& direction) const;
 
   private:
