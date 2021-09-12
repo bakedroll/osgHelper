@@ -12,6 +12,42 @@
 // |/
 // +----- X
 
+bool getIntersection(float fDst1, float fDst2, const osg::Vec3f& p1, const osg::Vec3f& p2, osg::Vec3f& hit)
+{
+	if ((fDst1 * fDst2) >= 0.0f)
+	{
+		return false;
+	}
+
+	if (fDst1 == fDst2)
+	{
+		return false;
+	}
+
+	hit = p1 + (p2-p1) * (-fDst1 / (fDst2 - fDst1));
+	return true;
+}
+
+bool isInBox(const osg::Vec3f& hit, const osg::Vec3f& b1, const osg::Vec3f& b2, const int axis)
+{
+	if (axis==1 && hit.z() > b1.z() && hit.z() < b2.z() && hit.y() > b1.y() && hit.y() < b2.y())
+	{
+		return true;
+	}
+
+	if (axis==2 && hit.z() > b1.z() && hit.z() < b2.z() && hit.x() > b1.x() && hit.x() < b2.x())
+	{
+		return true;
+	}
+
+	if (axis==3 && hit.x() > b1.x() && hit.x() < b2.x() && hit.y() > b1.y() && hit.y() < b2.y())
+	{
+		return true;
+	}
+
+	return false;
+}
+
 void osgHelper::rotateVector(osg:: Vec3* vec, const osg::Quat& quat)
 {
 	osg::Matrixd mat = osg::Matrixd::identity();
@@ -158,6 +194,40 @@ float osgHelper::pointLineDistance(const osg::Vec3f& origin, const osg::Vec3& di
 	const auto vec = direction ^ (point - origin);
 
 	return vec.length();
+}
+
+bool osgHelper::lineBoxIntersection(const osg::BoundingBox& bb, const osg::Vec3f& l1,
+	                                  const osg::Vec3f& l2, osg::Vec3f& hit)
+{
+	const auto& b1 = bb.corner(0);
+	const auto& b2 = bb.corner(7);
+
+	if (l2.x() < b1.x() && l1.x() < b1.x()) return false;
+	if (l2.x() > b2.x() && l1.x() > b2.x()) return false;
+	if (l2.y() < b1.y() && l1.y() < b1.y()) return false;
+	if (l2.y() > b2.y() && l1.y() > b2.y()) return false;
+	if (l2.z() < b1.z() && l1.z() < b1.z()) return false;
+	if (l2.z() > b2.z() && l1.z() > b2.z()) return false;
+
+	if (l1.x() > b1.x() && l1.x() < b2.x() &&
+		l1.y() > b1.y() && l1.y() < b2.y() &&
+		l1.z() > b1.z() && l1.z() < b2.z()) 
+	{
+		hit = l1; 
+		return true;
+	}
+
+	if ((getIntersection(l1.x()-b1.x(), l2.x()-b1.x(), l1, l2, hit) && isInBox(hit, b1, b2, 1))
+		|| (getIntersection(l1.y()-b1.y(), l2.y()-b1.y(), l1, l2, hit) && isInBox(hit, b1, b2, 2)) 
+		|| (getIntersection(l1.z()-b1.z(), l2.z()-b1.z(), l1, l2, hit) && isInBox(hit, b1, b2, 3)) 
+		|| (getIntersection(l1.x()-b2.x(), l2.x()-b2.x(), l1, l2, hit) && isInBox(hit, b1, b2, 1)) 
+		|| (getIntersection(l1.y()-b2.y(), l2.y()-b2.y(), l1, l2, hit) && isInBox(hit, b1, b2, 2)) 
+		|| (getIntersection(l1.z()-b2.z(), l2.z()-b2.z(), l1, l2, hit) && isInBox(hit, b1, b2, 3)))
+	{
+		return true;
+	}
+
+	return false;
 }
 
 void osgHelper::generateTangentAndBinormal(osg::Node* node)
