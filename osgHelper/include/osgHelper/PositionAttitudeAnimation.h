@@ -82,6 +82,12 @@ public:
     m_node->setAttitude(osgHelper::getQuatFromEuler(m_eulerAttitude.x(), m_eulerAttitude.y(), m_eulerAttitude.z()));
   }
 
+  void stopAnimation()
+  {
+    setPosition(m_node->getPosition());
+    setEulerAttitude(m_eulerAttitude);
+  }
+
 	void setDuration(double time)
   {
     m_positionAnimation.setDuration(time);
