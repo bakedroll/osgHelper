@@ -49,8 +49,8 @@ bool sphereLineIntersection(const osg::Vec3f& sphereCenter,
 float pointLineDistance(const osg::Vec3f& origin, const osg::Vec3& direction,
                         const osg::Vec3f& point);
 
-bool lineBoxIntersection(const osg::BoundingBox& bb, const osg::Vec3f& l1,
-	                       const osg::Vec3f& l2, osg::Vec3f& hit);
+std::vector<osg::Vec3f> lineBoxIntersection(const osg::BoundingBox& bb,
+	                                          const osg::Vec3f& l1, const osg::Vec3f& l2);
 
 void generateTangentAndBinormal(osg::Node* node);
 

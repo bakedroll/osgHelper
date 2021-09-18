@@ -12,42 +12,6 @@
 // |/
 // +----- X
 
-bool getIntersection(float fDst1, float fDst2, const osg::Vec3f& p1, const osg::Vec3f& p2, osg::Vec3f& hit)
-{
-	if ((fDst1 * fDst2) >= 0.0f)
-	{
-		return false;
-	}
-
-	if (fDst1 == fDst2)
-	{
-		return false;
-	}
-
-	hit = p1 + (p2-p1) * (-fDst1 / (fDst2 - fDst1));
-	return true;
-}
-
-bool isInBox(const osg::Vec3f& hit, const osg::Vec3f& b1, const osg::Vec3f& b2, const int axis)
-{
-	if (axis==1 && hit.z() > b1.z() && hit.z() < b2.z() && hit.y() > b1.y() && hit.y() < b2.y())
-	{
-		return true;
-	}
-
-	if (axis==2 && hit.z() > b1.z() && hit.z() < b2.z() && hit.x() > b1.x() && hit.x() < b2.x())
-	{
-		return true;
-	}
-
-	if (axis==3 && hit.x() > b1.x() && hit.x() < b2.x() && hit.y() > b1.y() && hit.y() < b2.y())
-	{
-		return true;
-	}
-
-	return false;
-}
-
 void osgHelper::rotateVector(osg:: Vec3* vec, const osg::Quat& quat)
 {
 	osg::Matrixd mat = osg::Matrixd::identity();
@@ -196,38 +160,56 @@ float osgHelper::pointLineDistance(const osg::Vec3f& origin, const osg::Vec3& di
 	return vec.length();
 }
 
-bool osgHelper::lineBoxIntersection(const osg::BoundingBox& bb, const osg::Vec3f& l1,
-	                                  const osg::Vec3f& l2, osg::Vec3f& hit)
+std::vector<osg::Vec3f> osgHelper::lineBoxIntersection(const osg::BoundingBox& bb,
+	                                                     const osg::Vec3f& l1,
+	                                                     const osg::Vec3f& l2)
 {
-	const auto& b1 = bb.corner(0);
-	const auto& b2 = bb.corner(7);
+	const auto beginToEnd = l2 - l1;
+  const auto min = bb.corner(0);
+  const auto max = bb.corner(7);
+	const auto beginToMin = min - l1;
+	const auto beginToMax = max - l1;
 
-	if (l2.x() < b1.x() && l1.x() < b1.x()) return false;
-	if (l2.x() > b2.x() && l1.x() > b2.x()) return false;
-	if (l2.y() < b1.y() && l1.y() < b1.y()) return false;
-	if (l2.y() > b2.y() && l1.y() > b2.y()) return false;
-	if (l2.z() < b1.z() && l1.z() < b1.z()) return false;
-	if (l2.z() > b2.z() && l1.z() > b2.z()) return false;
+	auto tNear = std::numeric_limits<float>::lowest();
+	auto tFar = std::numeric_limits<float>::max();
 
-	if (l1.x() > b1.x() && l1.x() < b2.x() &&
-		l1.y() > b1.y() && l1.y() < b2.y() &&
-		l1.z() > b1.z() && l1.z() < b2.z()) 
+	std::vector<osg::Vec3f> intersections;
+	for (auto i=0; i<3; i++)
 	{
-		hit = l1; 
-		return true;
+		const auto beginToMinCoord = beginToMin._v[i];
+		const auto beginToMaxCoord = beginToMax._v[i];
+		const auto beginToEndCoord = beginToEnd._v[i];
+
+		if ((beginToEndCoord == 0.0f) && (beginToMinCoord > 0.0f || beginToMaxCoord < 0.0f))
+		{
+		  return intersections;
+		}
+
+		auto t1 = beginToMinCoord / beginToEndCoord;
+		auto t2 = beginToMaxCoord / beginToEndCoord;
+		const auto tMin = std::min(t1, t2);
+		const auto tMax = std::max(t1, t2);
+
+		tNear = std::max(tNear, tMin);
+    tFar  = std::min(tFar, tMax);
+
+		if (tNear > tFar || tFar < 0.0f)
+		{
+			return intersections;
+		}
 	}
 
-	if ((getIntersection(l1.x()-b1.x(), l2.x()-b1.x(), l1, l2, hit) && isInBox(hit, b1, b2, 1))
-		|| (getIntersection(l1.y()-b1.y(), l2.y()-b1.y(), l1, l2, hit) && isInBox(hit, b1, b2, 2)) 
-		|| (getIntersection(l1.z()-b1.z(), l2.z()-b1.z(), l1, l2, hit) && isInBox(hit, b1, b2, 3)) 
-		|| (getIntersection(l1.x()-b2.x(), l2.x()-b2.x(), l1, l2, hit) && isInBox(hit, b1, b2, 1)) 
-		|| (getIntersection(l1.y()-b2.y(), l2.y()-b2.y(), l1, l2, hit) && isInBox(hit, b1, b2, 2)) 
-		|| (getIntersection(l1.z()-b2.z(), l2.z()-b2.z(), l1, l2, hit) && isInBox(hit, b1, b2, 3)))
+	if (tNear >= 0.0f && tNear <= 1.0f)
 	{
-		return true;
+		intersections.emplace_back(l1 + beginToEnd * tNear);
 	}
 
-	return false;
+	if (tFar >= 0.0f && tFar <= 1.0f)
+	{
+		intersections.emplace_back(l1 + beginToEnd * tFar);
+	}
+
+	return intersections;
 }
 
 void osgHelper::generateTangentAndBinormal(osg::Node* node)
