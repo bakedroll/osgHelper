@@ -28,7 +28,7 @@ namespace osgHelper
     {
     }
 
-		Animation(T value, double duration, AnimationEase ease)
+		Animation(const T& value, double duration, AnimationEase ease)
       : osg::Referenced()
       , m_value(value)
       , m_fromValue(value)
@@ -40,7 +40,9 @@ namespace osgHelper
     {
     }
 
-		void beginAnimation(T fromValue, T toValue, double timeBegin)
+		virtual ~Animation() = default;
+
+		void beginAnimation(const T& fromValue, const T& toValue, double timeBegin)
 		{
       m_fromValue = fromValue;
       m_value     = fromValue;
@@ -50,13 +52,13 @@ namespace osgHelper
       m_animationStarted = true;
 		}
 
-		void setValue(T value)
+		void setValue(const T& value)
 		{
 			m_value = value;
 			m_animationStarted = false;
 		}
 
-		void beginAnimation(T toValue, double timeBegin)
+		void beginAnimation(const T& toValue, double timeBegin)
 		{
 			beginAnimation(m_value, toValue, timeBegin);
 		}
@@ -127,7 +129,7 @@ namespace osgHelper
 			m_duration = duration;
 		}
 
-		void setFromValue(T fromValue)
+		void setFromValue(const T& fromValue)
 		{
 			m_fromValue = fromValue;
 			m_value = fromValue;
@@ -161,7 +163,7 @@ namespace osgHelper
 	class RepeatedSpaceAnimation : public Animation <T>
 	{
 	public:
-		RepeatedSpaceAnimation(const T min, const T max)
+		RepeatedSpaceAnimation(const T& min, const T& max)
 			: Animation<T>(),
 			  _min(min),
 			  _max(max)
@@ -169,7 +171,7 @@ namespace osgHelper
 
 		}
 
-		RepeatedSpaceAnimation(const T min, const T max, T value, double duration, AnimationEase ease)
+		RepeatedSpaceAnimation(const T& min, const T& max, const T& value, double duration, AnimationEase ease)
 			: Animation<T>(value, duration, ease),
 			  _min(min),
 			  _max(max)
@@ -243,13 +245,13 @@ namespace osgHelper
 	class RepeatedVectorfAnimation : public RepeatedSpaceAnimation <T>
 	{
 	public:
-		RepeatedVectorfAnimation(const T min, const T max)
+		RepeatedVectorfAnimation(const T& min, const T& max)
 			: RepeatedSpaceAnimation <T>(min, max)
 		{
 
 		}
 
-		RepeatedVectorfAnimation(const T min, const T max, T value, double duration, AnimationEase ease)
+		RepeatedVectorfAnimation(const T& min, const T& max, const T& value, double duration, AnimationEase ease)
 			: RepeatedSpaceAnimation <T>(min, max, value, duration, ease)
 		{
 

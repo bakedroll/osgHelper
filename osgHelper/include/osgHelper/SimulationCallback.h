@@ -9,8 +9,8 @@ namespace osgHelper
 	public:
 		struct SimulationData
 		{
-			double time;
-			double timeDelta;
+			double time      = 0.0;
+			double timeDelta = 0.0;
 		};
 
 	  SimulationCallback();
