@@ -35,6 +35,7 @@ namespace ioc
 
 
     InjectionContainer();
+    virtual ~InjectionContainer() = default;
 
     template<typename Type>
     void registerType()
@@ -70,11 +71,6 @@ namespace ioc
     {
       const std::type_index iid = typeid(Interface);
       const std::type_index tid = typeid(Type);
-
-      std::function<osg::ref_ptr<Type>(Injector*)> createInstanceFunc = [](Injector* injector) -> osg::ref_ptr<Type>
-      {
-        return new Type(*injector);
-      };
 
       m_registeredInterfaceSingletonTypes[iid][tid] = { osg::ref_ptr<osg::Referenced>(), getNewInstanceFunc<Type>() };
     }
