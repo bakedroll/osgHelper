@@ -1,47 +1,70 @@
 #include <gtest/gtest.h>
 
+#include <utilsLib/ILoggingManager.h>
+#include <utilsLib/LoggingManager.h>
+
 #include <osgHelper/ioc/InjectionContainer.h>
 #include <osgHelper/ioc/Injector.h>
 
-TEST(InjectionContainerTest, DependencyTree)
+#include <osg/Referenced>
+
+TEST(InjectorTest, DependencyTree)
 {
   class A : public osg::Referenced
   {
   public:
     A(osgHelper::ioc::Injector& injector)
+      : osg::Referenced()
     {
     }
+
+    virtual ~A() = default;
   };
 
   class B : public osg::Referenced
   {
   public:
     B(osgHelper::ioc::Injector& injector)
+      : osg::Referenced()
     {
     }
+
+    virtual ~B() = default;
   };
 
   class IC : public osg::Referenced
   {
   public:
+    IC() : osg::Referenced() {}
+    virtual ~IC() = default;
+
     virtual void pureVirtualFunc() = 0;
   };
 
   class ID : public osg::Referenced
   {
   public:
+    ID() : osg::Referenced() {}
+    virtual ~ID() = default;
+
     virtual void pureVirtualFunc() = 0;
   };
 
   class IE : public osg::Referenced
   {
   public:
+    IE() : osg::Referenced() {}
+    virtual ~IE() = default;
+
     virtual void pureVirtualFunc() = 0;
   };
 
   class IF : public osg::Referenced
   {
   public:
+    IF() : osg::Referenced() {}
+    virtual ~IF() = default;
+
     virtual void pureVirtualFunc() = 0;
   };
 
@@ -49,6 +72,7 @@ TEST(InjectionContainerTest, DependencyTree)
   {
   public:
     C(osgHelper::ioc::Injector& injector)
+      : IC()
     {
     }
 
@@ -59,6 +83,7 @@ TEST(InjectionContainerTest, DependencyTree)
   {
   public:
     D1(osgHelper::ioc::Injector& injector)
+      : ID()
     {
     }
 
@@ -69,6 +94,7 @@ TEST(InjectionContainerTest, DependencyTree)
   {
   public:
     D2(osgHelper::ioc::Injector& injector)
+      : ID()
     {
     }
 
@@ -79,6 +105,7 @@ TEST(InjectionContainerTest, DependencyTree)
   {
   public:
     E(osgHelper::ioc::Injector& injector)
+      : IE()
     {
     }
 
@@ -89,6 +116,7 @@ TEST(InjectionContainerTest, DependencyTree)
   {
   public:
     F1(osgHelper::ioc::Injector& injector)
+      : IF()
     {
     }
 
@@ -99,11 +127,14 @@ TEST(InjectionContainerTest, DependencyTree)
   {
   public:
     F2(osgHelper::ioc::Injector& injector)
+      : IF()
     {
     }
 
     void pureVirtualFunc() override {}
   };
+
+  utilsLib::ILoggingManager::create<utilsLib::LoggingManager>();
 
   osgHelper::ioc::InjectionContainer container;
 
@@ -124,45 +155,47 @@ TEST(InjectionContainerTest, DependencyTree)
   const auto a1 = injector.inject<A>();
   const auto a2 = injector.inject<A>();
 
-  ASSERT_EQ(a1, a2);
+  EXPECT_EQ(a1, a2);
 
   // Instances
   const auto b1 = injector.inject<B>();
   const auto b2 = injector.inject<B>();
 
-  ASSERT_NE(b1, b2);
+  EXPECT_NE(b1, b2);
 
   // Singleton interface types
   const auto c1 = injector.inject<IC>();
   const auto c2 = injector.inject<IC>();
 
-  ASSERT_EQ(c1, c2);
+  EXPECT_EQ(c1, c2);
 
   const auto dlist1 = injector.injectAll<ID>();
   const auto dlist2 = injector.injectAll<ID>();
 
-  ASSERT_EQ(dlist1.size(), 2);
-  ASSERT_EQ(dlist2.size(), 2);
+  EXPECT_EQ(dlist1.size(), 2);
+  EXPECT_EQ(dlist2.size(), 2);
 
-  for (auto i=0; i<dlist1.size(); i++)
+  for (auto i = 0; i < dlist1.size(); i++)
   {
-    ASSERT_EQ(dlist1[i], dlist2[i]);
+    EXPECT_EQ(dlist1[i], dlist2[i]);
   }
 
   // Interface instances
   const auto e1 = injector.inject<IE>();
   const auto e2 = injector.inject<IE>();
 
-  ASSERT_NE(e1, e2);
+  EXPECT_NE(e1, e2);
 
   const auto flist1 = injector.injectAll<IF>();
   const auto flist2 = injector.injectAll<IF>();
 
-  ASSERT_EQ(flist1.size(), 2);
-  ASSERT_EQ(flist2.size(), 2);
+  EXPECT_EQ(flist1.size(), 2);
+  EXPECT_EQ(flist2.size(), 2);
 
-  for (auto i=0; i<flist1.size(); i++)
+  for (auto i = 0; i < flist1.size(); i++)
   {
-    ASSERT_NE(flist1[i], flist2[i]);
+    EXPECT_NE(flist1[i], flist2[i]);
   }
+
+  container.clear();
 }

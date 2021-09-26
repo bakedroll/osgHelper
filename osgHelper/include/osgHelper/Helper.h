@@ -93,10 +93,4 @@ T parseVector(const std::string& s)
 	return result;
 }
 
-template <typename T>
-typename std::underlying_type<T>::type underlying(T t)
-{
-    return static_cast<typename std::underlying_type<T>::type>(std::forward<T>(t));
-}
-
 }

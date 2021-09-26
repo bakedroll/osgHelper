@@ -1,6 +1,5 @@
 #include <osgHelper/Camera.h>
 #include <osgHelper/Helper.h>
-#include <osgHelper/LogManager.h>
 
 namespace osgHelper
 {

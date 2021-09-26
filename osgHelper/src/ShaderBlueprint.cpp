@@ -1,5 +1,6 @@
 #include <osgHelper/ShaderBlueprint.h>
-#include <osgHelper/Macros.h>
+
+#include <utilsLib/Utils.h>
 
 namespace osgHelper
 {

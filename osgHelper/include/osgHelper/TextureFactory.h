@@ -1,13 +1,10 @@
 #pragma once
 
 #include <osgHelper/ITextureFactory.h>
+#include <osgHelper/ioc/Injector.h>
 
 namespace osgHelper
 {
-namespace ioc
-{
-class Injector;
-}
 
 class TextureFactory : public ITextureFactory
 {

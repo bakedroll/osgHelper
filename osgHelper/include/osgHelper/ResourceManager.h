@@ -3,13 +3,10 @@
 #include <map>
 
 #include <osgHelper/IResourceManager.h>
+#include <osgHelper/ioc/Injector.h>
 
 namespace osgHelper
 {
-namespace ioc
-{
-class Injector;
-}
 
 class ResourceManager : public IResourceManager
 {

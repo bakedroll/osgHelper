@@ -2,27 +2,16 @@
 
 #include <osgHelper/GameException.h>
 
-#include <osgHelper/ShaderFactory.h>
-#include <osgHelper/TextureFactory.h>
-#include <osgHelper/ResourceManager.h>
-#include <osgHelper/LogManager.h>
+#include <utilsLib/Utils.h>
 
-using namespace osg;
-using namespace std;
+#include <exception>
 
 namespace osgHelper
 {
 
-GameApplication::GameApplication()
-  : m_injector(nullptr)
-{
-}
+GameApplication::GameApplication() = default;
 
-GameApplication::~GameApplication()
-{
-  m_container.clear();
-  osgHelper::LogManager::clearInstance();
-}
+GameApplication::~GameApplication() = default;
 
 void GameApplication::onException(const std::string& message)
 {
@@ -36,44 +25,16 @@ int GameApplication::safeExecute(const std::function<int()>& func)
   }
   catch (osgHelper::GameException& e)
   {
-    OSGH_LOG_FATAL(std::string("Exception: ") + e.getMessage());
+    UTILS_LOG_FATAL(std::string("Exception: ") + e.getMessage());
     onException(e.getMessage());
   }
-  catch (exception& e)
+  catch (std::exception& e)
   {
-    OSGH_LOG_FATAL(std::string("Exception: ") + std::string(e.what()));
+    UTILS_LOG_FATAL(std::string("Exception: ") + std::string(e.what()));
     onException(e.what());
   }
 
   return -1;
-}
-
-void GameApplication::initialize(osgHelper::ioc::Injector& injector)
-{
-}
-
-void GameApplication::registerComponents(osgHelper::ioc::InjectionContainer& container)
-{
-}
-
-void GameApplication::registerEssentialComponents()
-{
-  m_container.registerSingletonInterfaceType<osgHelper::IShaderFactory, osgHelper::ShaderFactory>();
-  m_container.registerSingletonInterfaceType<osgHelper::IResourceManager, osgHelper::ResourceManager>();
-  m_container.registerSingletonInterfaceType<osgHelper::ITextureFactory, osgHelper::TextureFactory>();
-}
-
-osgHelper::ioc::Injector& GameApplication::injector() const
-{
-  return *m_injector;
-}
-
-void GameApplication::setupIOC()
-{
-  m_injector = std::make_unique<osgHelper::ioc::Injector>(m_container);
-
-  registerComponents(m_container);
-  initialize(*m_injector);
 }
 
 }

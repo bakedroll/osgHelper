@@ -1,7 +1,7 @@
 #include <osgHelper/View.h>
-#include <osgHelper/LogManager.h>
-#include <osgHelper/Macros.h>
 #include <osgHelper/Helper.h>
+
+#include <utilsLib/Utils.h>
 
 #include <osg/ClampColor>
 #include <osg/Texture2D>
@@ -30,7 +30,7 @@ struct View::Impl
 {
   Impl()
     : sceneGraph(new osg::Group())
-    , cameras(underlying(CameraType::_Count))
+    , cameras(utilsLib::underlying(CameraType::_Count))
     , isResolutionInitialized(false)
     , isPipelineDirty(false)
   {
@@ -82,13 +82,13 @@ struct View::Impl
     screenCamera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER, osg::Camera::FRAME_BUFFER);
     screenCamera->setRenderOrder(osg::Camera::POST_RENDER);
 
-    cameras[underlying(CameraType::Scene)]  = sceneCamera;
-    cameras[underlying(CameraType::Screen)] = screenCamera;
+    cameras[utilsLib::underlying(CameraType::Scene)]  = sceneCamera;
+    cameras[utilsLib::underlying(CameraType::Screen)] = screenCamera;
 
     const auto& texture = getOrCreateRenderTexture(osg::Camera::COLOR_BUFFER).texture;
 
-    auto geo = osg::createTexturedQuadGeometry(osg::Vec3f(-1.0f, -1.0f, 0.0f), osg::Vec3f(2.0f, 0.0f, 0.0f),
-                                               osg::Vec3f(0.0f, 2.0f, 0.0f));
+    const auto geo = osg::createTexturedQuadGeometry(osg::Vec3f(-1.0f, -1.0f, 0.0f), osg::Vec3f(2.0f, 0.0f, 0.0f),
+                                                     osg::Vec3f(0.0f, 2.0f, 0.0f));
 
     auto geode = new osg::Geode();
     geode->addDrawable(geo);
@@ -132,7 +132,7 @@ struct View::Impl
         break;
     }
 
-    cameras[underlying(CameraType::Scene)]->attach(bufferComponent, texture);
+    cameras[utilsLib::underlying(CameraType::Scene)]->attach(bufferComponent, texture);
 
     return texture;
   }
@@ -147,7 +147,7 @@ struct View::Impl
 
       if (mode == UpdateMode::Recreate)
       {
-        cameras[underlying(CameraType::Scene)]->detach(bufferComponent);
+        cameras[utilsLib::underlying(CameraType::Scene)]->detach(bufferComponent);
         renderTexture.texture = createRenderTexture(bufferComponent);
       }
 
@@ -302,7 +302,7 @@ osg::ref_ptr<osg::Group> View::getRootGroup() const
 
 osg::ref_ptr<osgHelper::Camera> View::getCamera(CameraType type) const
 {
-  return m->cameras[underlying(type)];
+  return m->cameras[utilsLib::underlying(type)];
 }
 
 void View::addPostProcessingEffect(const osg::ref_ptr<ppu::Effect>& ppe, bool enabled, const std::string& name)
@@ -321,7 +321,7 @@ void View::setPostProcessingEffectEnabled(const std::string& ppeName, bool enabl
 {
   if (m->ppeDictionary.count(ppeName) == 0)
   {
-    OSGH_LOG_WARN("Post processing effect '" + ppeName + "' not found");
+    UTILS_LOG_WARN("Post processing effect '" + ppeName + "' not found");
     assert_return(false);
   }
 
@@ -337,7 +337,7 @@ void View::setPostProcessingEffectEnabled(const std::string& ppeName, bool enabl
 
   if (ppe.effect->isSupported())
   {
-    OSGH_LOG_DEBUG("Post processing effect '" + ppeName + "': " + (enabled ? "enabled" : "disabled"));
+    UTILS_LOG_DEBUG("Post processing effect '" + ppeName + "': " + (enabled ? "enabled" : "disabled"));
   }
   else if (enabled)
   {
@@ -347,7 +347,7 @@ void View::setPostProcessingEffectEnabled(const std::string& ppeName, bool enabl
     }
     else
     {
-      OSGH_LOG_WARN(getEffectNotSupportedMessage(ppeName) + ". Could not enable.");
+      UTILS_LOG_WARN(getEffectNotSupportedMessage(ppeName) + ". Could not enable.");
     }
   }
 }
@@ -423,7 +423,7 @@ void View::assemblePipeline()
       const auto status = ppe->initialize(extensions);
       if (status.result != ppu::Effect::InitResult::Initialized)
       {
-        OSGH_LOG_WARN(getEffectNotSupportedMessage(ppe->getName()) + ": " + status.message);
+        UTILS_LOG_WARN(getEffectNotSupportedMessage(ppe->getName()) + ": " + status.message);
         continue;
       }
 
@@ -444,7 +444,7 @@ void View::assemblePipeline()
   }
   else
   {
-    OSGH_LOG_WARN("Could not build postprocessing pipeline due to invalid OpenGL state");
+    UTILS_LOG_WARN("Could not build postprocessing pipeline due to invalid OpenGL state");
   }
 
   m->lastUnit->addChild(m->unitOutput);
