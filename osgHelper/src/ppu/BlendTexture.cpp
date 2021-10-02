@@ -4,7 +4,6 @@
 #include <osgHelper/IShaderFactory.h>
 
 #include <osgPPU/ShaderAttribute.h>
-#include <osgPPU/UnitTexture.h>
 
 namespace osgHelper::ppu
 {
@@ -20,7 +19,6 @@ namespace osgHelper::ppu
     osg::ref_ptr<osgHelper::IShaderFactory> shaderFactory;
 
     osg::ref_ptr<osgPPU::UnitInOut> unitBlend;
-    osg::ref_ptr<osgPPU::UnitTexture> unitTexture;
 
     osg::Vec2f resolution;
     osg::ref_ptr<osgPPU::ShaderAttribute> shaderBlend;
@@ -65,9 +63,9 @@ namespace osgHelper::ppu
     return list;
   }
 
-  Effect::UnitList BlendTexture::getTextureInputUnits() const
+  RenderTextureUnitSink BlendTexture::getBlendTextureSink()
   {
-    return { m->unitTexture };
+    return RenderTextureUnitSink(this, m->unitBlend, "blendTex");
   }
 
   void BlendTexture::setResolution(const osg::Vec2f& resolution)
@@ -99,10 +97,6 @@ namespace osgHelper::ppu
 	    "	 gl_FragColor = texture2D(tex0, uv) + texture2D(blendTex, uv);" \
 	    "}");
 
-
-    m->unitTexture = new osgPPU::UnitTexture();
-
-
     m->unitBlend = new osgPPU::UnitInOut();
     
     m->shaderBlend = new osgPPU::ShaderAttribute();
@@ -110,8 +104,6 @@ namespace osgHelper::ppu
     m->shaderBlend->addShader(shaderFrag);
 
     //updateResolutionUniforms();
-
-    m->unitBlend->setInputToUniform(m->unitTexture, "blendTex", true);
 
     m->unitBlend->getOrCreateStateSet()->setAttributeAndModes(m->shaderBlend);
     
@@ -122,15 +114,6 @@ namespace osgHelper::ppu
   void BlendTexture::onResizeViewport(const osg::Vec2f& resolution)
   {
     setResolution(resolution);
-  }
-
-  void BlendTexture::setInputTexture(const osg::ref_ptr<osg::Texture> texture)
-  {
-    if (!m->unitTexture)
-    {
-      return;
-    }
-    m->unitTexture->setTexture(texture);
   }
 
   void BlendTexture::updateResolutionUniforms()

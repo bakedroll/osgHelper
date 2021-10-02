@@ -14,6 +14,7 @@
 #include <osgPPU/Processor.h>
 #include <osgPPU/UnitBypass.h>
 #include <osgPPU/UnitDepthbufferBypass.h>
+#include <osgPPU/UnitTexture.h>
 
 #include <osgDB/WriteFile>
 #include <osgDB/ReadFile>
@@ -86,9 +87,17 @@ struct View::Impl
     bool                      isIntegrated = false;
   };
 
+  struct RenderTextureUnitSinkData
+  {
+    osg::ref_ptr<Camera>              camera;
+    ppu::RenderTextureUnitSink        sink;
+    osg::ref_ptr<osgPPU::UnitTexture> unitTexture;
+    osg::ref_ptr<osg::Texture2D>      texture;
+  };
+
   using RenderTextureDictionary       = std::map<int, RenderTexture>;
   using PostProcessingStateDictionary = std::map<std::string, PostProcessingState>;
-  using SlaveRTTDataList              = std::vector<RTTSlaveCameraData>;
+  using RenderTextureUnitSinkList     = std::vector<RenderTextureUnitSinkData>;
 
   osg::ref_ptr<osg::Group>          sceneGraph;
   std::vector<osg::ref_ptr<Camera>> cameras;
@@ -108,7 +117,7 @@ struct View::Impl
   PostProcessingStateDictionary ppeDictionary;
   RenderTextureDictionary       renderTextures;
 
-  SlaveRTTDataList slaveRTTData;
+  RenderTextureUnitSinkList renderTextureUnitSinks;
 
   void setupCameras()
   {
@@ -259,6 +268,12 @@ void View::updateResolution(const osg::Vec2f& resolution, float pixelRatio)
   if (m->processor.valid())
   {
     osgPPU::Camera::resizeViewport(0, 0, width, height, getCamera(CameraType::Scene));
+
+    for (const auto& sink : m->renderTextureUnitSinks)
+    {
+      osgPPU::Camera::resizeViewport(0, 0, width, height, sink.camera);
+    }
+
     m->processor->onViewportChange();
   }
 
@@ -292,10 +307,10 @@ void View::updateCameraViewports(int x, int y, int width, int height, float pixe
     camera->updateResolution(osg::Vec2i(width, height));
   }
 
-  for (const auto& data : m->slaveRTTData)
+  for (const auto& sink : m->renderTextureUnitSinks)
   {
-    data.camera->setViewport(viewport);
-    data.camera->updateResolution(osg::Vec2i(width, height));
+    sink.camera->setViewport(viewport);
+    sink.camera->updateResolution(osg::Vec2i(width, height));
   }
 }
 
@@ -404,15 +419,10 @@ void View::cleanUp()
   m->ppeDictionary.clear();
 }
 
-View::RTTSlaveCameraData View::addRenderToTextureSlaveCamera(const osg::ref_ptr<Camera>& camera,
-                                                             TextureComponent components,
-                                                             SlaveCameraMode mode)
+View::RTTSlaveCameraData View::createRenderToTextureSlaveCamera(const osg::Vec2i& resolution, TextureComponent components, SlaveCameraMode mode)
 {
   RTTSlaveCameraData data;
-  data.camera = camera;
-
-  data.camera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT, osg::Camera::FRAME_BUFFER);
-  data.camera->setRenderOrder(osg::Camera::PRE_RENDER);
+  data.camera = createSlaveCamera(resolution, false, mode);
 
   const auto addCameraRenderTextureComponentIfInMask = [this, &data, components](TextureComponent component)
   {
@@ -434,21 +444,35 @@ View::RTTSlaveCameraData View::addRenderToTextureSlaveCamera(const osg::ref_ptr<
   addCameraRenderTextureComponentIfInMask(TextureComponent::ColorBuffer);
   addCameraRenderTextureComponentIfInMask(TextureComponent::DepthBuffer);
 
-  const auto refCamera = *m->cameras.begin();
-
-  data.camera->setViewport(refCamera->getViewport());
-  data.camera->updateResolution(osg::Vec2i(m->resolution.x(), m->resolution.y()));
-
-  data.camera->setGraphicsContext(refCamera->getGraphicsContext());
-
-  addSlave(data.camera, mode == SlaveCameraMode::UseMasterSceneData);
-
   return data;
 }
 
-View::RTTSlaveCameraData View::createRenderToTextureSlaveCamera(TextureComponent components, SlaveCameraMode mode)
+osg::ref_ptr<Camera> View::createRenderToTextureSlaveCameraToUnitSink(const ppu::RenderTextureUnitSink& sink, SlaveCameraMode mode)
 {
-  return addRenderToTextureSlaveCamera(new Camera());
+  auto camera = createSlaveCamera(osg::Vec2i(m->resolution.x(), m->resolution.y()), true, mode);
+
+  const auto texture = createCameraRenderTexture(camera, m->resolution, sink.getBufferComponent(), osg::Texture::NEAREST);
+
+  Impl::RenderTextureUnitSinkData data { camera, sink, new osgPPU::UnitTexture(), texture };
+
+  const auto e = data.sink.getEffect();
+  m->renderTextureUnitSinks.emplace_back(data);
+
+  data.unitTexture->setTexture(data.texture);
+  data.sink.getUnitSink()->setInputToUniform(data.unitTexture, data.sink.getUniformName(), true);
+
+  if (m->processor)
+  {
+    for (const auto& effect : m->ppeDictionary)
+    {
+      if (effect.second.effect == e && effect.second.isEnabled && effect.second.isIntegrated)
+      {
+        m->processor->addChild(data.unitTexture);
+      }
+    } 
+  }
+
+  return camera;
 }
 
 void View::initializePipelineProcessor()
@@ -504,10 +528,9 @@ void View::assemblePipeline()
         itou.unit->setInputToUniform(m->unitForType(itou.type), itou.name, true);
       }
 
-      auto textureInputUnits = ppe->getTextureInputUnits();
-      for (const auto& unit : textureInputUnits)
+      for (const auto& data : m->renderTextureUnitSinks)
       {
-        m->processor->addChild(unit);
+        data.sink.getUnitSink()->setInputToUniform(data.unitTexture, data.sink.getUniformName(), true);
       }
 
       m->lastUnit = ppe->getResultUnit();
@@ -535,27 +558,32 @@ void View::disassemblePipeline()
 
   for (auto& it : m->ppeDictionary)
   {
-      if (!it.second.isEnabled || !it.second.isIntegrated || !it.second.effect->isSupported())
-      {
-          continue;
-      }
+    if (!it.second.isEnabled || !it.second.isIntegrated || !it.second.effect->isSupported())
+    {
+        continue;
+    }
 
-      auto& ppe = it.second.effect;
+    auto& ppe = it.second.effect;
 
-      auto initialUnits = ppe->getInitialUnits();
-      for (const auto& unit : initialUnits)
-      {
-          m->unitForType(unit.type)->removeChild(unit.unit);
-      }
+    auto initialUnits = ppe->getInitialUnits();
+    for (const auto& unit : initialUnits)
+    {
+        m->unitForType(unit.type)->removeChild(unit.unit);
+    }
 
-      auto inputToUniformList = ppe->getInputToUniform();
-      for (const auto& itou : inputToUniformList)
-      {
-          m->unitForType(itou.type)->removeChild(itou.unit);
-      }
+    auto inputToUniformList = ppe->getInputToUniform();
+    for (const auto& itou : inputToUniformList)
+    {
+        m->unitForType(itou.type)->removeChild(itou.unit);
+    }
 
-      m->lastUnit            = ppe->getResultUnit();
-      it.second.isIntegrated = false;
+    for (const auto& data : m->renderTextureUnitSinks)
+    {
+      data.unitTexture->removeChild(data.sink.getUnitSink());
+    }
+
+    m->lastUnit            = ppe->getResultUnit();
+    it.second.isIntegrated = false;
   }
 
   if (m->unitOutput.valid())
@@ -600,9 +628,51 @@ void View::updateCameraRenderTextures(UpdateMode mode)
     }
   }
 
+  if (mode == UpdateMode::Recreate)
+  {
+    for (auto& data : m->renderTextureUnitSinks)
+    {
+      data.camera->detach(data.sink.getBufferComponent());
+
+      data.texture = createCameraRenderTexture(data.camera, m->resolution,
+        data.sink.getBufferComponent(),
+        osg::Texture::NEAREST);
+
+      data.unitTexture->setTexture(data.texture);
+
+      data.sink.getUnitSink()->setInputToUniform(data.unitTexture, data.sink.getUniformName());
+    }
+  }
+
   auto renderer = dynamic_cast<osgViewer::Renderer*>(getCamera(CameraType::Scene)->getRenderer());
   renderer->getSceneView(0)->getRenderStage()->setCameraRequiresSetUp(true);
   renderer->getSceneView(0)->getRenderStage()->setFrameBufferObject(nullptr);
+}
+
+osg::ref_ptr<Camera> View::createSlaveCamera(const osg::Vec2i& resolution, bool inheritViewport, SlaveCameraMode mode)
+{
+  auto camera = new Camera();
+
+  camera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT, osg::Camera::FRAME_BUFFER);
+  camera->setRenderOrder(osg::Camera::PRE_RENDER);
+
+  const auto refCamera = *m->cameras.begin();
+  camera->setGraphicsContext(refCamera->getGraphicsContext());
+
+  addSlave(camera, mode == SlaveCameraMode::UseMasterSceneData);
+
+  if (inheritViewport)
+  {
+    camera->setViewport(refCamera->getViewport());
+  }
+  else
+  {
+    camera->setViewport(0, 0, resolution.x(), resolution.y());
+  }
+
+  camera->updateResolution(resolution);
+
+  return camera;
 }
 
 }

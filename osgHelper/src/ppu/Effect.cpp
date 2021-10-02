@@ -47,11 +47,6 @@ Effect::InputToUniformList Effect::getInputToUniform() const
 	return InputToUniformList();
 }
 
-Effect::UnitList Effect::getTextureInputUnits() const
-{
-	return UnitList();
-}
-
 void Effect::onResizeViewport(const osg::Vec2f& resolution)
 {
 	

@@ -4,6 +4,7 @@
 
 #include <osgHelper/ppu/Effect.h>
 #include <osgHelper/Camera.h>
+#include <osgHelper/ppu/RenderTextureUnitSink.h>
 
 #include <osgViewer/View>
 
@@ -77,12 +78,12 @@ namespace osgHelper
 
     void cleanUp();
 
-    RTTSlaveCameraData addRenderToTextureSlaveCamera(const osg::ref_ptr<Camera>& camera,
-                                                     TextureComponent components = TextureComponent::ColorBuffer,
-                                                     SlaveCameraMode mode = SlaveCameraMode::UseSlaveChildSceneData);
-
-    RTTSlaveCameraData createRenderToTextureSlaveCamera(TextureComponent components = TextureComponent::ColorBuffer,
+    RTTSlaveCameraData createRenderToTextureSlaveCamera(const osg::Vec2i& resolution,
+                                                        TextureComponent components = TextureComponent::ColorBuffer,
                                                         SlaveCameraMode mode = SlaveCameraMode::UseSlaveChildSceneData);
+
+    osg::ref_ptr<Camera> createRenderToTextureSlaveCameraToUnitSink(const ppu::RenderTextureUnitSink& sink,
+                                                                    SlaveCameraMode mode = SlaveCameraMode::UseSlaveChildSceneData);
 
   private:
     struct Impl;
@@ -96,6 +97,8 @@ namespace osgHelper
     void alterPipelineState(const std::function<void()>& func, UpdateMode mode = UpdateMode::Recreate);
 
     void updateCameraRenderTextures(UpdateMode mode = UpdateMode::Keep);
+
+    osg::ref_ptr<Camera> createSlaveCamera(const osg::Vec2i& resolution, bool inheritViewport, SlaveCameraMode mode);
 
   };
 }

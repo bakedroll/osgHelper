@@ -1,6 +1,7 @@
 #pragma once
 
 #include <osgHelper/ppu/Effect.h>
+#include <osgHelper/ppu/RenderTextureUnitSink.h>
 #include <osgHelper/ioc/Injector.h>
 
 #include <memory>
@@ -25,12 +26,11 @@ namespace osgHelper
       InitialUnitList            getInitialUnits() const override;
       osg::ref_ptr<osgPPU::Unit> getResultUnit() const override;
       InputToUniformList         getInputToUniform() const override;
-      UnitList									 getTextureInputUnits() const override;
+
+      RenderTextureUnitSink getBlendTextureSink();
 
       void setResolution(const osg::Vec2f& resolution);
       void onResizeViewport(const osg::Vec2f& resolution) override;
-
-      void setInputTexture(const osg::ref_ptr<osg::Texture> texture);
 
     protected:
       Status initializeUnits(const osg::GL2Extensions* extensions) override;
