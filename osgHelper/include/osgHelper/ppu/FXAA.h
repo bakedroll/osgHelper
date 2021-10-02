@@ -5,8 +5,6 @@
 
 #include <memory>
 
-#include <osgGA/GUIEventHandler>
-
 #include <osgPPU/UnitInOut.h>
 
 namespace osgHelper

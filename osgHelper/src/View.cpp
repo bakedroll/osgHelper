@@ -26,6 +26,43 @@ std::string getEffectNotSupportedMessage(const std::string& effectName)
   return "Post processing effect '" + effectName + "' is not supported";
 }
 
+osg::ref_ptr<osg::Texture2D> createCameraRenderTexture(const osg::ref_ptr<osgHelper::Camera>& camera,
+                                                       const osg::Vec2f& resolution,
+                                                       osg::Camera::BufferComponent component,
+                                                       osg::Texture::FilterMode filterMode)
+{
+  auto texture = new osg::Texture2D();
+
+  texture->setDataVariance(osg::Texture::DataVariance::DYNAMIC);
+  texture->setTextureSize(static_cast<int>(resolution.x()), static_cast<int>(resolution.y()));
+  texture->setFilter(osg::Texture2D::MIN_FILTER, filterMode);
+  texture->setFilter(osg::Texture2D::MAG_FILTER, filterMode);
+  texture->setResizeNonPowerOfTwoHint(false);
+  texture->setWrap(osg::Texture2D::WRAP_S, osg::Texture2D::CLAMP_TO_BORDER);
+  texture->setWrap(osg::Texture2D::WRAP_T, osg::Texture2D::CLAMP_TO_BORDER);
+  texture->setBorderColor(osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
+
+  switch (component)
+  {
+  case osg::Camera::BufferComponent::COLOR_BUFFER:
+    texture->setInternalFormat(GL_RGBA16F_ARB);
+    texture->setSourceFormat(GL_RGBA);
+    texture->setSourceType(GL_FLOAT);
+    break;
+
+  case osg::Camera::BufferComponent::DEPTH_BUFFER:
+    texture->setInternalFormat(GL_DEPTH_COMPONENT);
+    break;
+
+  default:
+    break;
+  }
+
+  camera->attach(component, texture);
+
+  return texture;
+}
+
 struct View::Impl
 {
   Impl()
@@ -51,6 +88,7 @@ struct View::Impl
 
   using RenderTextureDictionary       = std::map<int, RenderTexture>;
   using PostProcessingStateDictionary = std::map<std::string, PostProcessingState>;
+  using SlaveRTTDataList              = std::vector<RTTSlaveCameraData>;
 
   osg::ref_ptr<osg::Group>          sceneGraph;
   std::vector<osg::ref_ptr<Camera>> cameras;
@@ -70,17 +108,19 @@ struct View::Impl
   PostProcessingStateDictionary ppeDictionary;
   RenderTextureDictionary       renderTextures;
 
+  SlaveRTTDataList slaveRTTData;
+
   void setupCameras()
   {
     const auto sceneCamera  = new Camera(Camera::ProjectionMode::Perspective);
     sceneCamera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT, osg::Camera::FRAME_BUFFER);
     sceneCamera->setComputeNearFarMode(osg::CullSettings::DO_NOT_COMPUTE_NEAR_FAR);
     sceneCamera->setClearMask(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    sceneCamera->setRenderOrder(osg::Camera::PRE_RENDER);
+    sceneCamera->setRenderOrder(osg::Camera::NESTED_RENDER);
 
     const auto screenCamera = new Camera(Camera::ProjectionMode::Ortho2D);
     screenCamera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER, osg::Camera::FRAME_BUFFER);
-    screenCamera->setRenderOrder(osg::Camera::POST_RENDER);
+    screenCamera->setRenderOrder(osg::Camera::RenderOrder::POST_RENDER);
 
     cameras[utilsLib::underlying(CameraType::Scene)]  = sceneCamera;
     cameras[utilsLib::underlying(CameraType::Screen)] = screenCamera;
@@ -103,38 +143,10 @@ struct View::Impl
     screenCamera->addChild(geode);
   }
 
-  osg::ref_ptr<osg::Texture2D> createRenderTexture(osg::Camera::BufferComponent bufferComponent)
+  osg::ref_ptr<osg::Texture2D> createAndAttachRenderTexture(osg::Camera::BufferComponent bufferComponent)
   {
-    auto texture = new osg::Texture2D();
-
-    texture->setDataVariance(osg::Texture::DataVariance::DYNAMIC);
-    texture->setTextureSize(static_cast<int>(resolution.x()), static_cast<int>(resolution.y()));
-    texture->setFilter(osg::Texture2D::MIN_FILTER, osg::Texture2D::LINEAR);
-    texture->setFilter(osg::Texture2D::MAG_FILTER, osg::Texture2D::LINEAR);
-    texture->setResizeNonPowerOfTwoHint(false);
-    texture->setWrap(osg::Texture2D::WRAP_S, osg::Texture2D::CLAMP_TO_BORDER);
-    texture->setWrap(osg::Texture2D::WRAP_T, osg::Texture2D::CLAMP_TO_BORDER);
-    texture->setBorderColor(osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
-
-    switch (bufferComponent)
-    {
-    case osg::Camera::COLOR_BUFFER:
-        texture->setInternalFormat(GL_RGBA16F_ARB);
-        texture->setSourceFormat(GL_RGBA);
-        texture->setSourceType(GL_FLOAT);
-        break;
-
-    case osg::Camera::DEPTH_BUFFER:
-        texture->setInternalFormat(GL_DEPTH_COMPONENT);
-        break;
-
-    default:
-        break;
-    }
-
-    cameras[utilsLib::underlying(CameraType::Scene)]->attach(bufferComponent, texture);
-
-    return texture;
+    const auto sceneCamera = cameras.at(utilsLib::underlying(CameraType::Scene));
+    return createCameraRenderTexture(sceneCamera, resolution, bufferComponent, osg::Texture::LINEAR);
   }
 
   RenderTexture getOrCreateRenderTexture(osg::Camera::BufferComponent bufferComponent,
@@ -148,14 +160,14 @@ struct View::Impl
       if (mode == UpdateMode::Recreate)
       {
         cameras[utilsLib::underlying(CameraType::Scene)]->detach(bufferComponent);
-        renderTexture.texture = createRenderTexture(bufferComponent);
+        renderTexture.texture = createAndAttachRenderTexture(bufferComponent);
       }
 
       return renderTexture;
     }
 
     RenderTexture rt;
-    rt.texture = createRenderTexture(bufferComponent);
+    rt.texture = createAndAttachRenderTexture(bufferComponent);
 
     renderTextures[bufferComponent] = rt;
 
@@ -279,6 +291,12 @@ void View::updateCameraViewports(int x, int y, int width, int height, float pixe
     camera->setViewport(viewport);
     camera->updateResolution(osg::Vec2i(width, height));
   }
+
+  for (const auto& data : m->slaveRTTData)
+  {
+    data.camera->setViewport(viewport);
+    data.camera->updateResolution(osg::Vec2i(width, height));
+  }
 }
 
 void View::setClampColorEnabled(bool enabled)
@@ -386,6 +404,53 @@ void View::cleanUp()
   m->ppeDictionary.clear();
 }
 
+View::RTTSlaveCameraData View::addRenderToTextureSlaveCamera(const osg::ref_ptr<Camera>& camera,
+                                                             TextureComponent components,
+                                                             SlaveCameraMode mode)
+{
+  RTTSlaveCameraData data;
+  data.camera = camera;
+
+  data.camera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT, osg::Camera::FRAME_BUFFER);
+  data.camera->setRenderOrder(osg::Camera::PRE_RENDER);
+
+  const auto addCameraRenderTextureComponentIfInMask = [this, &data, components](TextureComponent component)
+  {
+    const auto osgComponent = (component == TextureComponent::DepthBuffer)
+      ? osg::Camera::BufferComponent::DEPTH_BUFFER
+      : osg::Camera::COLOR_BUFFER;
+
+    if (utilsLib::bitmask_has(components, component))
+    {
+      data.textures[component] = createCameraRenderTexture(
+        data.camera, m->resolution, osgComponent, osg::Texture::NEAREST);
+    }
+    else
+    {
+      data.camera->detach(osgComponent);
+    }
+  };
+
+  addCameraRenderTextureComponentIfInMask(TextureComponent::ColorBuffer);
+  addCameraRenderTextureComponentIfInMask(TextureComponent::DepthBuffer);
+
+  const auto refCamera = *m->cameras.begin();
+
+  data.camera->setViewport(refCamera->getViewport());
+  data.camera->updateResolution(osg::Vec2i(m->resolution.x(), m->resolution.y()));
+
+  data.camera->setGraphicsContext(refCamera->getGraphicsContext());
+
+  addSlave(data.camera, mode == SlaveCameraMode::UseMasterSceneData);
+
+  return data;
+}
+
+View::RTTSlaveCameraData View::createRenderToTextureSlaveCamera(TextureComponent components, SlaveCameraMode mode)
+{
+  return addRenderToTextureSlaveCamera(new Camera());
+}
+
 void View::initializePipelineProcessor()
 {
   const auto& sceneCamera = getCamera(CameraType::Scene);
@@ -437,6 +502,12 @@ void View::assemblePipeline()
       for (const auto& itou : inputToUniformList)
       {
         itou.unit->setInputToUniform(m->unitForType(itou.type), itou.name, true);
+      }
+
+      auto textureInputUnits = ppe->getTextureInputUnits();
+      for (const auto& unit : textureInputUnits)
+      {
+        m->processor->addChild(unit);
       }
 
       m->lastUnit = ppe->getResultUnit();
@@ -534,4 +605,4 @@ void View::updateCameraRenderTextures(UpdateMode mode)
   renderer->getSceneView(0)->getRenderStage()->setFrameBufferObject(nullptr);
 }
 
-}  // namespace osgHelper
+}

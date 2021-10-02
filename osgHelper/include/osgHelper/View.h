@@ -1,12 +1,13 @@
 #pragma once
 
+#include <utilsLib/Utils.h>
+
 #include <osgHelper/ppu/Effect.h>
 #include <osgHelper/Camera.h>
 
 #include <osgViewer/View>
 
 #include <memory>
-
 
 namespace osgHelper
 {
@@ -30,6 +31,26 @@ namespace osgHelper
       Screen, //!< The camera that renders the frame buffer object resulting from the main render stage
               //!< to the screen, usually in ortho2D projection mode
       _Count  //!< Used to determine the number of different camera types in this view
+    };
+
+    enum class SlaveCameraMode
+    {
+      UseMasterSceneData,
+      UseSlaveChildSceneData
+    };
+
+    enum class TextureComponent
+    {
+      ColorBuffer = 0x1,
+      DepthBuffer = 0x2
+    };
+
+    using SlaveRenderTextures = std::map<TextureComponent, osg::ref_ptr<osg::Texture2D>>;
+
+    struct RTTSlaveCameraData
+    {
+      osg::ref_ptr<Camera> camera;
+      SlaveRenderTextures  textures;
     };
 
     explicit View();
@@ -56,6 +77,13 @@ namespace osgHelper
 
     void cleanUp();
 
+    RTTSlaveCameraData addRenderToTextureSlaveCamera(const osg::ref_ptr<Camera>& camera,
+                                                     TextureComponent components = TextureComponent::ColorBuffer,
+                                                     SlaveCameraMode mode = SlaveCameraMode::UseSlaveChildSceneData);
+
+    RTTSlaveCameraData createRenderToTextureSlaveCamera(TextureComponent components = TextureComponent::ColorBuffer,
+                                                        SlaveCameraMode mode = SlaveCameraMode::UseSlaveChildSceneData);
+
   private:
     struct Impl;
     std::unique_ptr<Impl> m;
@@ -70,5 +98,6 @@ namespace osgHelper
     void updateCameraRenderTextures(UpdateMode mode = UpdateMode::Keep);
 
   };
-
 }
+
+ENABLE_BITMASK_OPERATORS(osgHelper::View::TextureComponent);
