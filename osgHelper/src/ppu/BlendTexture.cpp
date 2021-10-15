@@ -94,7 +94,12 @@ namespace osgHelper::ppu
       "void main()" \
 	    "{" \
 	    "	 vec2 uv = gl_TexCoord[0].st;" \
-	    "	 gl_FragColor = texture2D(tex0, uv) + texture2D(blendTex, uv);" \
+      "  if (texture2D(blendTex, uv).a == 0.0)" \
+      "  {" \
+      "    gl_FragColor = texture2D(tex0, uv);" \
+      "    return;" \
+      "  }" \
+	    "	 gl_FragColor = texture2D(blendTex, uv);" \
 	    "}");
 
     m->unitBlend = new osgPPU::UnitInOut();

@@ -54,7 +54,7 @@ namespace osgHelper
       SlaveRenderTextures  textures;
     };
 
-    explicit View();
+    View();
     ~View();
 
     void updateResolution(const osg::Vec2f& resolution, float pixelRatio = 1.0f);

@@ -14,7 +14,8 @@
 #include <osgPPU/Processor.h>
 #include <osgPPU/UnitBypass.h>
 #include <osgPPU/UnitDepthbufferBypass.h>
-#include <osgPPU/UnitTexture.h>
+#include <osgPPU/UnitCamera.h>
+#include <osgPPU/UnitCameraAttachmentBypass.h>
 
 #include <osgDB/WriteFile>
 #include <osgDB/ReadFile>
@@ -91,7 +92,8 @@ struct View::Impl
   {
     osg::ref_ptr<Camera>              camera;
     ppu::RenderTextureUnitSink        sink;
-    osg::ref_ptr<osgPPU::UnitTexture> unitTexture;
+    osg::ref_ptr<osgPPU::UnitCamera>  unitCamera;
+    osg::ref_ptr<osgPPU::UnitCameraAttachmentBypass> unitCameraAttachmentBypass;
     osg::ref_ptr<osg::Texture2D>      texture;
   };
 
@@ -148,7 +150,6 @@ struct View::Impl
     screenStateSet->setMode(GL_DEPTH_TEST, osg::StateAttribute::OFF);
     screenStateSet->setMode(GL_BLEND, osg::StateAttribute::OFF);
 
-    sceneGraph->addChild(screenCamera);
     screenCamera->addChild(geode);
   }
 
@@ -253,6 +254,9 @@ View::View()
 
   setCamera(getCamera(CameraType::Scene));
   setSceneData(m->sceneGraph);
+
+  //m->sceneGraph->addChild(getCamera(CameraType::Screen));
+  addSlave(getCamera(CameraType::Screen), false);
 }
 
 View::~View() = default;
@@ -453,13 +457,23 @@ osg::ref_ptr<Camera> View::createRenderToTextureSlaveCameraToUnitSink(const ppu:
 
   const auto texture = createCameraRenderTexture(camera, m->resolution, sink.getBufferComponent(), osg::Texture::NEAREST);
 
-  Impl::RenderTextureUnitSinkData data { camera, sink, new osgPPU::UnitTexture(), texture };
+  Impl::RenderTextureUnitSinkData data
+  {
+    camera, sink,
+    new osgPPU::UnitCamera(),
+    new osgPPU::UnitCameraAttachmentBypass(),
+    texture
+  };
+
+  data.unitCamera->setCamera(camera);
+  data.unitCameraAttachmentBypass->setBufferComponent(data.sink.getBufferComponent());
+
+  data.unitCamera->addChild(data.unitCameraAttachmentBypass);
 
   const auto e = data.sink.getEffect();
   m->renderTextureUnitSinks.emplace_back(data);
 
-  data.unitTexture->setTexture(data.texture);
-  data.sink.getUnitSink()->setInputToUniform(data.unitTexture, data.sink.getUniformName(), true);
+  data.sink.getUnitSink()->setInputToUniform(data.unitCameraAttachmentBypass, data.sink.getUniformName(), true);
 
   if (m->processor)
   {
@@ -467,7 +481,7 @@ osg::ref_ptr<Camera> View::createRenderToTextureSlaveCameraToUnitSink(const ppu:
     {
       if (effect.second.effect == e && effect.second.isEnabled && effect.second.isIntegrated)
       {
-        m->processor->addChild(data.unitTexture);
+        m->processor->addChild(data.unitCamera);
       }
     } 
   }
@@ -530,7 +544,7 @@ void View::assemblePipeline()
 
       for (const auto& data : m->renderTextureUnitSinks)
       {
-        data.sink.getUnitSink()->setInputToUniform(data.unitTexture, data.sink.getUniformName(), true);
+        data.sink.getUnitSink()->setInputToUniform(data.unitCameraAttachmentBypass, data.sink.getUniformName(), true);
       }
 
       m->lastUnit = ppe->getResultUnit();
@@ -579,7 +593,7 @@ void View::disassemblePipeline()
 
     for (const auto& data : m->renderTextureUnitSinks)
     {
-      data.unitTexture->removeChild(data.sink.getUnitSink());
+      data.unitCameraAttachmentBypass->removeChild(data.sink.getUnitSink());
     }
 
     m->lastUnit            = ppe->getResultUnit();
@@ -638,9 +652,7 @@ void View::updateCameraRenderTextures(UpdateMode mode)
         data.sink.getBufferComponent(),
         osg::Texture::NEAREST);
 
-      data.unitTexture->setTexture(data.texture);
-
-      data.sink.getUnitSink()->setInputToUniform(data.unitTexture, data.sink.getUniformName());
+      data.sink.getUnitSink()->setInputToUniform(data.unitCameraAttachmentBypass, data.sink.getUniformName());
     }
   }
 
