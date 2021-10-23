@@ -47,9 +47,8 @@ osg::ref_ptr<osg::Texture2D> createCameraRenderTexture(const osg::ref_ptr<osgHel
   texture->setFilter(osg::Texture2D::MIN_FILTER, filterMode);
   texture->setFilter(osg::Texture2D::MAG_FILTER, filterMode);
   texture->setResizeNonPowerOfTwoHint(false);
-  texture->setWrap(osg::Texture2D::WRAP_S, osg::Texture2D::CLAMP_TO_BORDER);
-  texture->setWrap(osg::Texture2D::WRAP_T, osg::Texture2D::CLAMP_TO_BORDER);
-  texture->setBorderColor(osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
+  texture->setWrap(osg::Texture2D::WRAP_S, osg::Texture2D::CLAMP_TO_EDGE);
+  texture->setWrap(osg::Texture2D::WRAP_T, osg::Texture2D::CLAMP_TO_EDGE);
 
   switch (component)
   {
