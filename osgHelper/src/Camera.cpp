@@ -53,10 +53,10 @@ osg::ref_ptr<osg::Node> Camera::createScreenQuad()
 
   auto indices = new osg::DrawElementsUInt(osg::PrimitiveSet::POLYGON, 0);
 
-  indices->push_back(0);
-  indices->push_back(1);
-  indices->push_back(3);
   indices->push_back(2);
+  indices->push_back(3);
+  indices->push_back(1);
+  indices->push_back(0);
 
   auto texcoords = new osg::Vec2Array();
   texcoords->push_back(osg::Vec2(0.0f, 0.0f));

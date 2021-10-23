@@ -9,6 +9,7 @@
 #include <osgViewer/View>
 
 #include <memory>
+#include <functional>
 
 namespace osgHelper
 {
@@ -60,6 +61,13 @@ namespace osgHelper
       osg::ref_ptr<osg::Node> screenQuadNode;
     };
 
+    using ResizeCallbackFunc = std::function<void(const osg::Vec2i&)>;
+
+    struct ResizeCallback
+    {
+      ResizeCallbackFunc func;
+    };
+
     View();
     ~View();
 
@@ -83,6 +91,8 @@ namespace osgHelper
     bool hasPostProcessingEffect(const std::string& ppeName) const;
 
     void cleanUp();
+
+    std::shared_ptr<ResizeCallback> registerResizeCallback(const ResizeCallbackFunc& func);
 
     RTTSlaveCameraData createRenderToTextureSlaveCamera(const osg::Vec2i& resolution,
                                                         TextureComponent components = TextureComponent::ColorBuffer,

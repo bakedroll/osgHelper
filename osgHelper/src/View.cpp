@@ -121,6 +121,8 @@ struct View::Impl
   osg::ref_ptr<osg::Group>          sceneGraph;
   std::vector<osg::ref_ptr<Camera>> cameras;
 
+  std::vector<std::weak_ptr<ResizeCallback>> resizeCallbacks;
+
   osg::ref_ptr<osg::StateSet> screenStateSet;
 
   osg::Vec2f resolution;
@@ -318,6 +320,21 @@ void View::updateResolution(const osg::Vec2f& resolution, float pixelRatio)
   {
     effect.second.effect->onResizeViewport(resolution);
   }
+
+  auto it = m->resizeCallbacks.begin();
+  while (it != m->resizeCallbacks.end())
+  {
+    auto ptr = it->lock();
+    if (ptr)
+    {
+      ptr->func(osg::Vec2i(m->resolution.x(), m->resolution.y()));
+      ++it;
+    }
+    else
+    {
+      it = m->resizeCallbacks.erase(it);
+    }
+  }
 }
 
 void View::updateCameraViewports(int x, int y, int width, int height, float pixelRatio) const
@@ -449,6 +466,17 @@ void View::cleanUp()
   m->sceneGraph->removeChildren(0, m->sceneGraph->getNumChildren());
 
   m->ppeDictionary.clear();
+}
+
+std::shared_ptr<View::ResizeCallback> View::registerResizeCallback(const ResizeCallbackFunc& func)
+{
+  auto callback = std::make_shared<ResizeCallback>();
+  callback->func = func;
+  callback->func(osg::Vec2i(m->resolution.x(), m->resolution.y()));
+
+  m->resizeCallbacks.emplace_back(callback);
+
+  return callback;
 }
 
 View::RTTSlaveCameraData View::createRenderToTextureSlaveCamera(const osg::Vec2i& resolution, TextureComponent components, SlaveCameraMode mode)
