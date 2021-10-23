@@ -23,6 +23,13 @@
 namespace osgHelper
 {
 
+osg::Camera::BufferComponent getCameraBufferComponent(View::TextureComponent textureComponent)
+{
+  return (textureComponent == View::TextureComponent::ColorBuffer)
+    ? osg::Camera::BufferComponent::COLOR_BUFFER
+    : osg::Camera::BufferComponent::DEPTH_BUFFER;
+}
+
 std::string getEffectNotSupportedMessage(const std::string& effectName)
 {
   return "Post processing effect '" + effectName + "' is not supported";
@@ -65,6 +72,15 @@ osg::ref_ptr<osg::Texture2D> createCameraRenderTexture(const osg::ref_ptr<osgHel
   return texture;
 }
 
+void applyStateSetRemderTextures(const osg::ref_ptr<osg::StateSet>& stateSet, const View::SlaveRenderTextures& textures)
+{
+  for (const auto& component : textures)
+  {
+    stateSet->setTextureAttributeAndModes(
+      component.first == View::TextureComponent::ColorBuffer ? 0 : 1, component.second);
+  }
+}
+
 struct View::Impl
 {
   Impl()
@@ -97,9 +113,10 @@ struct View::Impl
     osg::ref_ptr<osg::Texture2D>      texture;
   };
 
-  using RenderTextureDictionary       = std::map<int, RenderTexture>;
-  using PostProcessingStateDictionary = std::map<std::string, PostProcessingState>;
-  using RenderTextureUnitSinkList     = std::vector<RenderTextureUnitSinkData>;
+  using RenderTextureDictionary          = std::map<int, RenderTexture>;
+  using PostProcessingStateDictionary    = std::map<std::string, PostProcessingState>;
+  using RenderTextureUnitSinkList        = std::vector<RenderTextureUnitSinkData>;
+  using RTTSlaveCameraScreenQuadDataList = std::vector<RTTSlaveCameraScreenQuadData>;
 
   osg::ref_ptr<osg::Group>          sceneGraph;
   std::vector<osg::ref_ptr<Camera>> cameras;
@@ -120,6 +137,7 @@ struct View::Impl
   RenderTextureDictionary       renderTextures;
 
   RenderTextureUnitSinkList renderTextureUnitSinks;
+  RTTSlaveCameraScreenQuadDataList rttScreenQuadData;
 
   void setupCameras()
   {
@@ -277,6 +295,10 @@ void View::updateResolution(const osg::Vec2f& resolution, float pixelRatio)
     {
       osgPPU::Camera::resizeViewport(0, 0, width, height, sink.camera);
     }
+    for (const auto& screenQuad : m->rttScreenQuadData)
+    {
+      osgPPU::Camera::resizeViewport(0, 0, width, height, screenQuad.slaveCameraData.camera);
+    }
 
     m->processor->onViewportChange();
   }
@@ -315,6 +337,12 @@ void View::updateCameraViewports(int x, int y, int width, int height, float pixe
   {
     sink.camera->setViewport(viewport);
     sink.camera->updateResolution(osg::Vec2i(width, height));
+  }
+
+  for (const auto& screenQuad : m->rttScreenQuadData)
+  {
+    screenQuad.slaveCameraData.camera->setViewport(viewport);
+    screenQuad.slaveCameraData.camera->updateResolution(osg::Vec2i(width, height));
   }
 }
 
@@ -489,6 +517,29 @@ osg::ref_ptr<Camera> View::createRenderToTextureSlaveCameraToUnitSink(const ppu:
   return camera;
 }
 
+View::RTTSlaveCameraScreenQuadData View::createRenderToTextureSlaveCameraToScreenQuad(TextureComponent components,
+                                                                                      SlaveCameraMode mode)
+{
+  RTTSlaveCameraScreenQuadData data;
+  data.slaveCameraData = createRenderToTextureSlaveCamera(osg::Vec2i(m->resolution.x(), m->resolution.y()), components, mode);
+  data.screenQuadNode  = getCamera(CameraType::Scene)->createScreenQuad();
+
+  auto quadStateSet = data.screenQuadNode->getOrCreateStateSet();
+  quadStateSet->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
+  quadStateSet->setMode(GL_DEPTH_TEST, osg::StateAttribute::OFF);
+  quadStateSet->setMode(GL_BLEND, osg::StateAttribute::ON);
+  quadStateSet->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
+  quadStateSet->setRenderBinDetails(10, "RenderBin");
+  quadStateSet->setAttributeAndModes(new osg::BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA), osg::StateAttribute::ON);
+
+  applyStateSetRemderTextures(quadStateSet, data.slaveCameraData.textures);
+
+  m->rttScreenQuadData.emplace_back(data);
+
+  return data;
+}
+
+
 void View::initializePipelineProcessor()
 {
   const auto& sceneCamera = getCamera(CameraType::Scene);
@@ -653,6 +704,22 @@ void View::updateCameraRenderTextures(UpdateMode mode)
         osg::Texture::NEAREST);
 
       data.sink.getUnitSink()->setInputToUniform(data.unitCameraAttachmentBypass, data.sink.getUniformName());
+    }
+
+    for (auto& data : m->rttScreenQuadData)
+    {
+      const auto& camera = data.slaveCameraData.camera;
+      for (auto& texture : data.slaveCameraData.textures)
+      {
+        const auto component = getCameraBufferComponent(texture.first);
+        camera->detach(component);
+
+        texture.second = createCameraRenderTexture(
+          camera, m->resolution, component, osg::Texture::NEAREST);
+      }
+
+      applyStateSetRemderTextures(data.screenQuadNode->getOrCreateStateSet(),
+        data.slaveCameraData.textures);
     }
   }
 

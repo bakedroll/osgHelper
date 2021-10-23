@@ -24,6 +24,9 @@ namespace osgHelper
     void addCameraAlignedQuad(const osg::ref_ptr<CameraAlignedQuad>& caq);
     void removeCameraAlignedQuad(const osg::ref_ptr<CameraAlignedQuad>& caq);
 
+    osg::ref_ptr<osg::Node> createScreenQuad();
+    void removeScreenQuad(const osg::ref_ptr<osg::Node>& node);
+
     osg::Vec3f getPosition() const;
     osg::Quat getAttitude() const;
 
@@ -46,11 +49,13 @@ namespace osgHelper
 
   private:
     using CameraAlignedQuadList = std::vector<osg::ref_ptr<CameraAlignedQuad>>;
+    using ScreenQuadList        = std::vector<osg::ref_ptr<osg::MatrixTransform>>;
 
     void updateProjectionMode();
     void updateModelViewMatrix();
     void updateProjectionMatrix();
     void updateCameraAlignedQuads();
+    void updateScreenQuads();
 
     ProjectionMode m_mode;
     osg::Vec3f     m_position;
@@ -62,5 +67,6 @@ namespace osgHelper
     osg::Vec2i m_resolution;
 
     CameraAlignedQuadList m_cameraAlignedQuads;
+    ScreenQuadList        m_screenQuads;
   };
 }
