@@ -6,12 +6,15 @@ namespace osgHelper
 {
 
   FpsUpdateCallback::FpsUpdateCallback()
-    : osg::Callback(),
-    m_framesCount(0),
-    m_lastSimulationTime(0.0)
+    : osg::Callback()
+    , m_framesCount(0)
+    , m_lastSimulationTime(0.0)
+    , m_isEnabled(true)
   {
 
   }
+
+  FpsUpdateCallback::~FpsUpdateCallback() = default;
 
   void FpsUpdateCallback::setUpdateFunc(const std::function<void(int)>& func)
   {
@@ -20,7 +23,7 @@ namespace osgHelper
 
   bool FpsUpdateCallback::run(osg::Object* node, osg::Object* data)
   {
-    if (m_updateFunc)
+    if (m_updateFunc && m_isEnabled)
     {
       const auto nv = dynamic_cast<osg::NodeVisitor*>(data);
       if (!nv)
@@ -28,7 +31,7 @@ namespace osgHelper
         return false;
       }
 
-      auto time = nv->getFrameStamp()->getSimulationTime();
+      const auto time = nv->getFrameStamp()->getSimulationTime();
 
       if (m_lastSimulationTime != 0.0)
       {
@@ -52,4 +55,13 @@ namespace osgHelper
     return traverse(node, data);
   }
 
+  void FpsUpdateCallback::setEnabled(bool enabled)
+  {
+    m_isEnabled = enabled;
+  }
+
+  bool FpsUpdateCallback::isEnabled() const
+  {
+    return m_isEnabled;
+  }
 }
