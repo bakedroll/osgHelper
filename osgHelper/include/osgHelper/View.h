@@ -79,6 +79,8 @@ namespace osgHelper
     osg::ref_ptr<osg::Group>        getRootGroup() const;
     osg::ref_ptr<osgHelper::Camera> getCamera(CameraType type) const;
 
+    void setSlaveCameraEnabled(const osg::ref_ptr<Camera>& camera, bool enabled);
+
     void addPostProcessingEffect(const osg::ref_ptr<ppu::Effect>& ppe, bool enabled = true,
                                  const std::string& name = "");
 

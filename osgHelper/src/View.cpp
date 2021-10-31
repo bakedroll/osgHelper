@@ -71,7 +71,7 @@ osg::ref_ptr<osg::Texture2D> createCameraRenderTexture(const osg::ref_ptr<osgHel
   return texture;
 }
 
-void applyStateSetRemderTextures(const osg::ref_ptr<osg::StateSet>& stateSet, const View::SlaveRenderTextures& textures)
+void applyStateSetRenderTextures(const osg::ref_ptr<osg::StateSet>& stateSet, const View::SlaveRenderTextures& textures)
 {
   for (const auto& component : textures)
   {
@@ -119,6 +119,8 @@ struct View::Impl
 
   osg::ref_ptr<osg::Group>          sceneGraph;
   std::vector<osg::ref_ptr<Camera>> cameras;
+
+  std::map<osg::ref_ptr<Camera>, SlaveCameraMode> slaveCameraModi;
 
   std::vector<std::weak_ptr<ResizeCallback>> resizeCallbacks;
 
@@ -386,6 +388,35 @@ osg::ref_ptr<osgHelper::Camera> View::getCamera(CameraType type) const
   return m->cameras[utilsLib::underlying(type)];
 }
 
+void View::setSlaveCameraEnabled(const osg::ref_ptr<Camera>& camera, bool enabled)
+{
+  if (m->slaveCameraModi.count(camera) == 0)
+  {
+    UTILS_LOG_WARN("Camera is not a registered slave camera");
+    return;
+  }
+
+  auto pos = -1;
+  for (auto i=0; i<getNumSlaves(); i++)
+  {
+    if (getSlave(i)._camera == camera)
+    {
+      pos = i;
+      break;
+    }
+  }
+
+  if (enabled && (pos == -1))
+  {
+    addSlave(camera,
+      m->slaveCameraModi.at(camera) == SlaveCameraMode::UseMasterSceneData);
+  }
+  else if (!enabled && (pos >= 0))
+  {
+    removeSlave(pos);
+  }
+}
+
 void View::addPostProcessingEffect(const osg::ref_ptr<ppu::Effect>& ppe, bool enabled, const std::string& name)
 {
   alterPipelineState([this, ppe, enabled, name]()
@@ -559,7 +590,7 @@ View::RTTSlaveCameraScreenQuadData View::createRenderToTextureSlaveCameraToScree
   quadStateSet->setRenderBinDetails(10, "RenderBin");
   quadStateSet->setAttributeAndModes(new osg::BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA), osg::StateAttribute::ON);
 
-  applyStateSetRemderTextures(quadStateSet, data.slaveCameraData.textures);
+  applyStateSetRenderTextures(quadStateSet, data.slaveCameraData.textures);
 
   m->rttScreenQuadData.emplace_back(data);
 
@@ -745,7 +776,7 @@ void View::updateCameraRenderTextures(UpdateMode mode)
           camera, m->resolution, component, osg::Texture::NEAREST);
       }
 
-      applyStateSetRemderTextures(data.screenQuadNode->getOrCreateStateSet(),
+      applyStateSetRenderTextures(data.screenQuadNode->getOrCreateStateSet(),
         data.slaveCameraData.textures);
     }
   }
@@ -764,6 +795,8 @@ osg::ref_ptr<Camera> View::createSlaveCamera(const osg::Vec2i& resolution, bool 
 
   const auto refCamera = *m->cameras.begin();
   camera->setGraphicsContext(refCamera->getGraphicsContext());
+
+  m->slaveCameraModi[camera] = mode;
 
   addSlave(camera, mode == SlaveCameraMode::UseMasterSceneData);
 
