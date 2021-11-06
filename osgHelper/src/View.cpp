@@ -397,7 +397,7 @@ void View::setSlaveCameraEnabled(const osg::ref_ptr<Camera>& camera, bool enable
   }
 
   auto pos = -1;
-  for (auto i=0; i<getNumSlaves(); i++)
+  for (auto i=0U; i<getNumSlaves(); i++)
   {
     if (getSlave(i)._camera == camera)
     {
