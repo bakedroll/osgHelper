@@ -2,6 +2,8 @@
 
 #include <osgHelper/ITextureBlueprint.h>
 
+#include <memory>
+
 namespace osgHelper
 {
 

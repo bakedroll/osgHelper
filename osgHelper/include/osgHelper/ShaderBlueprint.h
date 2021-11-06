@@ -2,6 +2,8 @@
 
 #include <osgHelper/IShaderBlueprint.h>
 
+#include <memory>
+
 namespace osgHelper
 {
 
