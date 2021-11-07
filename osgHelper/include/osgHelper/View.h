@@ -43,6 +43,7 @@ namespace osgHelper
 
     enum class TextureComponent
     {
+      Unknown     = 0,
       ColorBuffer = 0x1,
       DepthBuffer = 0x2
     };

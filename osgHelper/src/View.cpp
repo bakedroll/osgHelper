@@ -23,6 +23,29 @@
 namespace osgHelper
 {
 
+osg::Camera::BufferComponent textureComponentToOsgBufferComponent(View::TextureComponent component)
+{
+  return (component == View::TextureComponent::DepthBuffer)
+    ? osg::Camera::BufferComponent::DEPTH_BUFFER
+    : osg::Camera::COLOR_BUFFER;
+}
+
+View::TextureComponent OsgBufferComponentToTextureComponent(osg::Camera::BufferComponent component)
+{
+  switch (component)
+  {
+  case osg::Camera::BufferComponent::DEPTH_BUFFER:
+    return View::TextureComponent::DepthBuffer;
+  case osg::Camera::BufferComponent::COLOR_BUFFER:
+    return View::TextureComponent::ColorBuffer;
+  default:
+    break;
+  }
+
+  assert(false);
+  return View::TextureComponent::Unknown;
+}
+
 osg::Camera::BufferComponent getCameraBufferComponent(View::TextureComponent textureComponent)
 {
   return (textureComponent == View::TextureComponent::ColorBuffer)
@@ -105,11 +128,10 @@ struct View::Impl
 
   struct RenderTextureUnitSinkData
   {
-    osg::ref_ptr<Camera>              camera;
+    RTTSlaveCameraData                slaveCameraData;
     ppu::RenderTextureUnitSink        sink;
     osg::ref_ptr<osgPPU::UnitCamera>  unitCamera;
     osg::ref_ptr<osgPPU::UnitCameraAttachmentBypass> unitCameraAttachmentBypass;
-    osg::ref_ptr<osg::Texture2D>      texture;
   };
 
   using RenderTextureDictionary          = std::map<int, RenderTexture>;
@@ -296,7 +318,7 @@ void View::updateResolution(const osg::Vec2f& resolution, float pixelRatio)
 
     for (const auto& sink : m->renderTextureUnitSinks)
     {
-      osgPPU::Camera::resizeViewport(0, 0, width, height, sink.camera);
+      osgPPU::Camera::resizeViewport(0, 0, width, height, sink.slaveCameraData.camera);
     }
     for (const auto& screenQuad : m->rttScreenQuadData)
     {
@@ -353,8 +375,8 @@ void View::updateCameraViewports(int x, int y, int width, int height, float pixe
 
   for (const auto& sink : m->renderTextureUnitSinks)
   {
-    sink.camera->setViewport(viewport);
-    sink.camera->updateResolution(osg::Vec2i(width, height));
+    sink.slaveCameraData.camera->setViewport(viewport);
+    sink.slaveCameraData.camera->updateResolution(osg::Vec2i(width, height));
   }
 
   for (const auto& screenQuad : m->rttScreenQuadData)
@@ -516,9 +538,7 @@ View::RTTSlaveCameraData View::createRenderToTextureSlaveCamera(const osg::Vec2i
 
   const auto addCameraRenderTextureComponentIfInMask = [this, &data, components](TextureComponent component)
   {
-    const auto osgComponent = (component == TextureComponent::DepthBuffer)
-      ? osg::Camera::BufferComponent::DEPTH_BUFFER
-      : osg::Camera::COLOR_BUFFER;
+    const auto osgComponent = textureComponentToOsgBufferComponent(component);
 
     if (utilsLib::bitmask_has(components, component))
     {
@@ -539,19 +559,20 @@ View::RTTSlaveCameraData View::createRenderToTextureSlaveCamera(const osg::Vec2i
 
 osg::ref_ptr<Camera> View::createRenderToTextureSlaveCameraToUnitSink(const ppu::RenderTextureUnitSink& sink, SlaveCameraMode mode)
 {
-  auto camera = createSlaveCamera(osg::Vec2i(m->resolution.x(), m->resolution.y()), true, mode);
-
-  const auto texture = createCameraRenderTexture(camera, m->resolution, sink.getBufferComponent(), osg::Texture::NEAREST);
+  const auto rttData = createRenderToTextureSlaveCamera(
+    osg::Vec2i(m->resolution.x(), m->resolution.y()),
+    OsgBufferComponentToTextureComponent(sink.getBufferComponent()),
+    mode);
 
   Impl::RenderTextureUnitSinkData data
   {
-    camera, sink,
+    rttData,
+    sink,
     new osgPPU::UnitCamera(),
     new osgPPU::UnitCameraAttachmentBypass(),
-    texture
   };
 
-  data.unitCamera->setCamera(camera);
+  data.unitCamera->setCamera(rttData.camera);
   data.unitCameraAttachmentBypass->setBufferComponent(data.sink.getBufferComponent());
 
   data.unitCamera->addChild(data.unitCameraAttachmentBypass);
@@ -572,7 +593,7 @@ osg::ref_ptr<Camera> View::createRenderToTextureSlaveCameraToUnitSink(const ppu:
     } 
   }
 
-  return camera;
+  return rttData.camera;
 }
 
 View::RTTSlaveCameraScreenQuadData View::createRenderToTextureSlaveCameraToScreenQuad(TextureComponent components,
@@ -753,21 +774,10 @@ void View::updateCameraRenderTextures(UpdateMode mode)
 
   if (mode == UpdateMode::Recreate)
   {
-    for (auto& data : m->renderTextureUnitSinks)
+    const auto updateRTTSlaveCameraData = [this](RTTSlaveCameraData& data)
     {
-      data.camera->detach(data.sink.getBufferComponent());
-
-      data.texture = createCameraRenderTexture(data.camera, m->resolution,
-        data.sink.getBufferComponent(),
-        osg::Texture::NEAREST);
-
-      data.sink.getUnitSink()->setInputToUniform(data.unitCameraAttachmentBypass, data.sink.getUniformName());
-    }
-
-    for (auto& data : m->rttScreenQuadData)
-    {
-      const auto& camera = data.slaveCameraData.camera;
-      for (auto& texture : data.slaveCameraData.textures)
+      const auto& camera = data.camera;
+      for (auto& texture : data.textures)
       {
         const auto component = getCameraBufferComponent(texture.first);
         camera->detach(component);
@@ -775,6 +785,18 @@ void View::updateCameraRenderTextures(UpdateMode mode)
         texture.second = createCameraRenderTexture(
           camera, m->resolution, component, osg::Texture::NEAREST);
       }
+    };
+
+    for (auto& data : m->renderTextureUnitSinks)
+    {
+      updateRTTSlaveCameraData(data.slaveCameraData);
+
+      data.sink.getUnitSink()->setInputToUniform(data.unitCameraAttachmentBypass, data.sink.getUniformName());
+    }
+
+    for (auto& data : m->rttScreenQuadData)
+    {
+      updateRTTSlaveCameraData(data.slaveCameraData);
 
       applyStateSetRenderTextures(data.screenQuadNode->getOrCreateStateSet(),
         data.slaveCameraData.textures);
