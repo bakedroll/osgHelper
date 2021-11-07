@@ -46,6 +46,12 @@ View::TextureComponent OsgBufferComponentToTextureComponent(osg::Camera::BufferC
   return View::TextureComponent::Unknown;
 }
 
+osg::Vec2i scaledVec2i(const osg::Vec2i& vec, float factor)
+{
+  return osg::Vec2i(static_cast<int>(vec.x() * factor),
+    static_cast<int>(vec.y() * factor));
+}
+
 osg::Camera::BufferComponent getCameraBufferComponent(View::TextureComponent textureComponent)
 {
   return (textureComponent == View::TextureComponent::ColorBuffer)
@@ -128,7 +134,7 @@ struct View::Impl
 
   struct RenderTextureUnitSinkData
   {
-    RTTSlaveCameraData                slaveCameraData;
+    ScreenBoundRTTData                screenBoundData;
     ppu::RenderTextureUnitSink        sink;
     osg::ref_ptr<osgPPU::UnitCamera>  unitCamera;
     osg::ref_ptr<osgPPU::UnitCameraAttachmentBypass> unitCameraAttachmentBypass;
@@ -318,11 +324,11 @@ void View::updateResolution(const osg::Vec2i& resolution, float pixelRatio)
 
     for (const auto& sink : m->renderTextureUnitSinks)
     {
-      osgPPU::Camera::resizeViewport(0, 0, width, height, sink.slaveCameraData.camera);
+      osgPPU::Camera::resizeViewport(0, 0, width, height, sink.screenBoundData.rttData.camera);
     }
     for (const auto& screenQuad : m->rttScreenQuadData)
     {
-      osgPPU::Camera::resizeViewport(0, 0, width, height, screenQuad.slaveCameraData.camera);
+      osgPPU::Camera::resizeViewport(0, 0, width, height, screenQuad.screenBoundData.rttData.camera);
     }
 
     m->processor->onViewportChange();
@@ -376,14 +382,14 @@ void View::updateCameraViewports(int x, int y, int width, int height, float pixe
 
   for (const auto& sink : m->renderTextureUnitSinks)
   {
-    sink.slaveCameraData.camera->setViewport(viewport);
-    sink.slaveCameraData.camera->updateResolution(resolution);
+    sink.screenBoundData.rttData.camera->setViewport(viewport);
+    sink.screenBoundData.rttData.camera->updateResolution(resolution);
   }
 
   for (const auto& screenQuad : m->rttScreenQuadData)
   {
-    screenQuad.slaveCameraData.camera->setViewport(viewport);
-    screenQuad.slaveCameraData.camera->updateResolution(resolution);
+    screenQuad.screenBoundData.rttData.camera->setViewport(viewport);
+    screenQuad.screenBoundData.rttData.camera->updateResolution(resolution);
   }
 }
 
@@ -558,16 +564,17 @@ View::RTTSlaveCameraData View::createRenderToTextureSlaveCamera(const osg::Vec2i
   return data;
 }
 
-osg::ref_ptr<Camera> View::createRenderToTextureSlaveCameraToUnitSink(const ppu::RenderTextureUnitSink& sink, SlaveCameraMode mode)
+osg::ref_ptr<Camera> View::createRenderToTextureSlaveCameraToUnitSink(const ppu::RenderTextureUnitSink& sink,
+                                                                      float textureScale, SlaveCameraMode mode)
 {
   const auto rttData = createRenderToTextureSlaveCamera(
-    m->resolution,
+    scaledVec2i(m->resolution, textureScale),
     OsgBufferComponentToTextureComponent(sink.getBufferComponent()),
     mode);
 
   Impl::RenderTextureUnitSinkData data
   {
-    rttData,
+    { rttData, textureScale },
     sink,
     new osgPPU::UnitCamera(),
     new osgPPU::UnitCameraAttachmentBypass(),
@@ -598,11 +605,17 @@ osg::ref_ptr<Camera> View::createRenderToTextureSlaveCameraToUnitSink(const ppu:
 }
 
 View::RTTSlaveCameraScreenQuadData View::createRenderToTextureSlaveCameraToScreenQuad(TextureComponent components,
+                                                                                      float textureScale,
                                                                                       SlaveCameraMode mode)
 {
-  RTTSlaveCameraScreenQuadData data;
-  data.slaveCameraData = createRenderToTextureSlaveCamera(m->resolution, components, mode);
-  data.screenQuadNode  = getCamera(CameraType::Scene)->createScreenQuad();
+  const auto rttData = createRenderToTextureSlaveCamera(scaledVec2i(m->resolution, textureScale), components, mode);
+  const auto screenQuadNode = getCamera(CameraType::Scene)->createScreenQuad();
+
+  RTTSlaveCameraScreenQuadData data
+  {
+    { rttData, textureScale },
+    screenQuadNode
+  };
 
   auto quadStateSet = data.screenQuadNode->getOrCreateStateSet();
   quadStateSet->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
@@ -612,7 +625,7 @@ View::RTTSlaveCameraScreenQuadData View::createRenderToTextureSlaveCameraToScree
   quadStateSet->setRenderBinDetails(10, "RenderBin");
   quadStateSet->setAttributeAndModes(new osg::BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA), osg::StateAttribute::ON);
 
-  applyStateSetRenderTextures(quadStateSet, data.slaveCameraData.textures);
+  applyStateSetRenderTextures(quadStateSet, data.screenBoundData.rttData.textures);
 
   m->rttScreenQuadData.emplace_back(data);
 
@@ -775,32 +788,32 @@ void View::updateCameraRenderTextures(UpdateMode mode)
 
   if (mode == UpdateMode::Recreate)
   {
-    const auto updateRTTSlaveCameraData = [this](RTTSlaveCameraData& data)
+    const auto updateRTTSlaveCameraData = [this](ScreenBoundRTTData& data)
     {
-      const auto& camera = data.camera;
-      for (auto& texture : data.textures)
+      const auto& camera = data.rttData.camera;
+      for (auto& texture : data.rttData.textures)
       {
         const auto component = getCameraBufferComponent(texture.first);
         camera->detach(component);
 
         texture.second = createCameraRenderTexture(
-          camera, m->resolution, component, osg::Texture::NEAREST);
+          camera, scaledVec2i(m->resolution, data.textureScale), component, osg::Texture::NEAREST);
       }
     };
 
     for (auto& data : m->renderTextureUnitSinks)
     {
-      updateRTTSlaveCameraData(data.slaveCameraData);
+      updateRTTSlaveCameraData(data.screenBoundData);
 
       data.sink.getUnitSink()->setInputToUniform(data.unitCameraAttachmentBypass, data.sink.getUniformName());
     }
 
     for (auto& data : m->rttScreenQuadData)
     {
-      updateRTTSlaveCameraData(data.slaveCameraData);
+      updateRTTSlaveCameraData(data.screenBoundData);
 
       applyStateSetRenderTextures(data.screenQuadNode->getOrCreateStateSet(),
-        data.slaveCameraData.textures);
+        data.screenBoundData.rttData.textures);
     }
   }
 

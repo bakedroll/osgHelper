@@ -56,9 +56,15 @@ namespace osgHelper
       SlaveRenderTextures  textures;
     };
 
+    struct ScreenBoundRTTData
+    {
+      RTTSlaveCameraData rttData;
+      const float textureScale;
+    };
+
     struct RTTSlaveCameraScreenQuadData
     {
-      RTTSlaveCameraData      slaveCameraData;
+      ScreenBoundRTTData      screenBoundData;
       osg::ref_ptr<osg::Node> screenQuadNode;
     };
 
@@ -102,9 +108,11 @@ namespace osgHelper
                                                         SlaveCameraMode mode = SlaveCameraMode::UseSlaveChildSceneData);
 
     osg::ref_ptr<Camera> createRenderToTextureSlaveCameraToUnitSink(const ppu::RenderTextureUnitSink& sink,
+                                                                    float textureScale = 1.0f,
                                                                     SlaveCameraMode mode = SlaveCameraMode::UseSlaveChildSceneData);
 
     RTTSlaveCameraScreenQuadData createRenderToTextureSlaveCameraToScreenQuad(TextureComponent components = TextureComponent::ColorBuffer,
+                                                                              float textureScale = 1.0f,
                                                                               SlaveCameraMode mode = SlaveCameraMode::UseSlaveChildSceneData);
 
   private:
