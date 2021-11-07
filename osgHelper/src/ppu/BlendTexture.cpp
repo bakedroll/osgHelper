@@ -12,7 +12,7 @@ namespace osgHelper::ppu
   {
     Impl(osgHelper::ioc::Injector& injector)
       : shaderFactory(injector.inject<osgHelper::IShaderFactory>())
-      , resolution(osg::Vec2f(512.0f, 512.0f))
+      , resolution(osg::Vec2i(512, 512))
     {
     }
 
@@ -20,7 +20,7 @@ namespace osgHelper::ppu
 
     osg::ref_ptr<osgPPU::UnitInOut> unitBlend;
 
-    osg::Vec2f resolution;
+    osg::Vec2i resolution;
     osg::ref_ptr<osgPPU::ShaderAttribute> shaderBlend;
   };
 
@@ -68,7 +68,7 @@ namespace osgHelper::ppu
     return RenderTextureUnitSink(this, m->unitBlend, "blendTex");
   }
 
-  void BlendTexture::setResolution(const osg::Vec2f& resolution)
+  void BlendTexture::setResolution(const osg::Vec2i& resolution)
   {
     m->resolution = resolution;
 
@@ -116,15 +116,15 @@ namespace osgHelper::ppu
     return { InitResult::Initialized, "" };
   }
 
-  void BlendTexture::onResizeViewport(const osg::Vec2f& resolution)
+  void BlendTexture::onResizeViewport(const osg::Vec2i& resolution)
   {
     setResolution(resolution);
   }
 
   void BlendTexture::updateResolutionUniforms()
   {
-    m->shaderBlend->set("rt_w", m->resolution.x());
-    m->shaderBlend->set("rt_h", m->resolution.y());
+    m->shaderBlend->set("rt_w", static_cast<float>(m->resolution.x()));
+    m->shaderBlend->set("rt_h", static_cast<float>(m->resolution.y()));
   }
 
 }

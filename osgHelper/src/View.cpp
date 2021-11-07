@@ -59,14 +59,14 @@ std::string getEffectNotSupportedMessage(const std::string& effectName)
 }
 
 osg::ref_ptr<osg::Texture2D> createCameraRenderTexture(const osg::ref_ptr<osgHelper::Camera>& camera,
-                                                       const osg::Vec2f& resolution,
+                                                       const osg::Vec2i& resolution,
                                                        osg::Camera::BufferComponent component,
                                                        osg::Texture::FilterMode filterMode)
 {
   auto texture = new osg::Texture2D();
 
   texture->setDataVariance(osg::Texture::DataVariance::DYNAMIC);
-  texture->setTextureSize(static_cast<int>(resolution.x()), static_cast<int>(resolution.y()));
+  texture->setTextureSize(resolution.x(), resolution.y());
   texture->setFilter(osg::Texture2D::MIN_FILTER, filterMode);
   texture->setFilter(osg::Texture2D::MAG_FILTER, filterMode);
   texture->setResizeNonPowerOfTwoHint(false);
@@ -148,7 +148,7 @@ struct View::Impl
 
   osg::ref_ptr<osg::StateSet> screenStateSet;
 
-  osg::Vec2f resolution;
+  osg::Vec2i resolution;
   bool       isResolutionInitialized;
   bool       isPipelineDirty;
 
@@ -304,10 +304,10 @@ View::View()
 
 View::~View() = default;
 
-void View::updateResolution(const osg::Vec2f& resolution, float pixelRatio)
+void View::updateResolution(const osg::Vec2i& resolution, float pixelRatio)
 {
-  const auto width  = static_cast<int>(resolution.x());
-  const auto height = static_cast<int>(resolution.y());
+  const auto width  = resolution.x();
+  const auto height = resolution.y();
 
   updateCameraViewports(0, 0, width, height, pixelRatio);
   updateCameraRenderTextures(UpdateMode::Recreate);
@@ -328,7 +328,7 @@ void View::updateResolution(const osg::Vec2f& resolution, float pixelRatio)
     m->processor->onViewportChange();
   }
 
-  const auto initialResolutionUpdate = (m->resolution.length2() == 0.0f);
+  const auto initialResolutionUpdate = ((m->resolution.x() == 0) && (m->resolution.y() == 0));
 
   m->resolution              = resolution;
   m->isResolutionInitialized = true;
@@ -350,7 +350,7 @@ void View::updateResolution(const osg::Vec2f& resolution, float pixelRatio)
     auto ptr = it->lock();
     if (ptr)
     {
-      ptr->func(osg::Vec2i(m->resolution.x(), m->resolution.y()));
+      ptr->func(m->resolution);
       ++it;
     }
     else
@@ -366,23 +366,24 @@ void View::updateCameraViewports(int x, int y, int width, int height, float pixe
   const auto scaledHeight = static_cast<int>(pixelRatio * static_cast<float>(height));
 
   const auto viewport = new osg::Viewport(x, y, scaledWidth, scaledHeight);
+  const osg::Vec2i resolution(width, height);
 
   for (const auto& camera : m->cameras)
   {
     camera->setViewport(viewport);
-    camera->updateResolution(osg::Vec2i(width, height));
+    camera->updateResolution(resolution);
   }
 
   for (const auto& sink : m->renderTextureUnitSinks)
   {
     sink.slaveCameraData.camera->setViewport(viewport);
-    sink.slaveCameraData.camera->updateResolution(osg::Vec2i(width, height));
+    sink.slaveCameraData.camera->updateResolution(resolution);
   }
 
   for (const auto& screenQuad : m->rttScreenQuadData)
   {
     screenQuad.slaveCameraData.camera->setViewport(viewport);
-    screenQuad.slaveCameraData.camera->updateResolution(osg::Vec2i(width, height));
+    screenQuad.slaveCameraData.camera->updateResolution(resolution);
   }
 }
 
@@ -496,7 +497,7 @@ osg::ref_ptr<ppu::Effect> View::getPostProcessingEffect(const std::string& ppeNa
   return m->ppeDictionary[ppeName].effect;
 }
 
-osg::Vec2f View::getResolution() const
+osg::Vec2i View::getResolution() const
 {
   assert(m->isResolutionInitialized);
   return m->resolution;
@@ -524,7 +525,7 @@ std::shared_ptr<View::ResizeCallback> View::registerResizeCallback(const ResizeC
 {
   auto callback = std::make_shared<ResizeCallback>();
   callback->func = func;
-  callback->func(osg::Vec2i(m->resolution.x(), m->resolution.y()));
+  callback->func(m->resolution);
 
   m->resizeCallbacks.emplace_back(callback);
 
@@ -536,14 +537,14 @@ View::RTTSlaveCameraData View::createRenderToTextureSlaveCamera(const osg::Vec2i
   RTTSlaveCameraData data;
   data.camera = createSlaveCamera(resolution, false, mode);
 
-  const auto addCameraRenderTextureComponentIfInMask = [this, &data, components](TextureComponent component)
+  const auto addCameraRenderTextureComponentIfInMask = [this, &data, &resolution, components](TextureComponent component)
   {
     const auto osgComponent = textureComponentToOsgBufferComponent(component);
 
     if (utilsLib::bitmask_has(components, component))
     {
       data.textures[component] = createCameraRenderTexture(
-        data.camera, m->resolution, osgComponent, osg::Texture::NEAREST);
+        data.camera, resolution, osgComponent, osg::Texture::NEAREST);
     }
     else
     {
@@ -560,7 +561,7 @@ View::RTTSlaveCameraData View::createRenderToTextureSlaveCamera(const osg::Vec2i
 osg::ref_ptr<Camera> View::createRenderToTextureSlaveCameraToUnitSink(const ppu::RenderTextureUnitSink& sink, SlaveCameraMode mode)
 {
   const auto rttData = createRenderToTextureSlaveCamera(
-    osg::Vec2i(m->resolution.x(), m->resolution.y()),
+    m->resolution,
     OsgBufferComponentToTextureComponent(sink.getBufferComponent()),
     mode);
 
@@ -600,7 +601,7 @@ View::RTTSlaveCameraScreenQuadData View::createRenderToTextureSlaveCameraToScree
                                                                                       SlaveCameraMode mode)
 {
   RTTSlaveCameraScreenQuadData data;
-  data.slaveCameraData = createRenderToTextureSlaveCamera(osg::Vec2i(m->resolution.x(), m->resolution.y()), components, mode);
+  data.slaveCameraData = createRenderToTextureSlaveCamera(m->resolution, components, mode);
   data.screenQuadNode  = getCamera(CameraType::Scene)->createScreenQuad();
 
   auto quadStateSet = data.screenQuadNode->getOrCreateStateSet();

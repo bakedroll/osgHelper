@@ -24,8 +24,8 @@ namespace ppu
     osg::ref_ptr<osgPPU::Unit> getResultUnit() const override;
     InputToUniformList         getInputToUniform() const override;
 
-    void setResolution(const osg::Vec2f& resolution);
-		void onResizeViewport(const osg::Vec2f& resolution) override;
+    void setResolution(const osg::Vec2i& resolution);
+		void onResizeViewport(const osg::Vec2i& resolution) override;
 
 	protected:
 		Status initializeUnits(const osg::GL2Extensions* extensions) override;

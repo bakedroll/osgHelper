@@ -47,7 +47,7 @@ Effect::InputToUniformList Effect::getInputToUniform() const
 	return InputToUniformList();
 }
 
-void Effect::onResizeViewport(const osg::Vec2f& resolution)
+void Effect::onResizeViewport(const osg::Vec2i& resolution)
 {
 	
 }

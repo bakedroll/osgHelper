@@ -12,14 +12,14 @@ struct FXAA::Impl
 {
   Impl(osgHelper::ioc::Injector& injector)
     : shaderFactory(injector.inject<osgHelper::IShaderFactory>())
-    , resolution(osg::Vec2f(512.0f, 512.0f))
+    , resolution(osg::Vec2i(512, 512))
   {
   }
 
   osg::ref_ptr<osgHelper::IShaderFactory> shaderFactory;
 
   osg::ref_ptr<osgPPU::UnitInOut> unitFxaa;
-  osg::Vec2f resolution;
+  osg::Vec2i resolution;
   osg::ref_ptr<osgPPU::ShaderAttribute> shaderFxaa;
 };
 
@@ -62,7 +62,7 @@ Effect::InputToUniformList FXAA::getInputToUniform() const
   return list;
 }
 
-void FXAA::setResolution(const osg::Vec2f& resolution)
+void FXAA::setResolution(const osg::Vec2i& resolution)
 {
   m->resolution = resolution;
 
@@ -99,15 +99,15 @@ Effect::Status FXAA::initializeUnits(const osg::GL2Extensions* extensions)
   return { InitResult::Initialized, "" };
 }
 
-void FXAA::onResizeViewport(const osg::Vec2f& resolution)
+void FXAA::onResizeViewport(const osg::Vec2i& resolution)
 {
   setResolution(resolution);
 }
 
 void FXAA::updateResolutionUniforms()
 {
-  m->shaderFxaa->set("rt_w", m->resolution.x());
-  m->shaderFxaa->set("rt_h", m->resolution.y());
+  m->shaderFxaa->set("rt_w", static_cast<float>(m->resolution.x()));
+  m->shaderFxaa->set("rt_h", static_cast<float>(m->resolution.y()));
 }
 
 }

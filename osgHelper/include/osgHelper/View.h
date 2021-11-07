@@ -72,7 +72,7 @@ namespace osgHelper
     View();
     ~View();
 
-    void updateResolution(const osg::Vec2f& resolution, float pixelRatio = 1.0f);
+    void updateResolution(const osg::Vec2i& resolution, float pixelRatio = 1.0f);
     void updateCameraViewports(int x, int y, int width, int height, float pixelRatio = 1.0f) const;
 
     void setClampColorEnabled(bool enabled);
@@ -88,7 +88,7 @@ namespace osgHelper
     void setPostProcessingEffectEnabled(const std::string& ppeName, bool enabled);
 
     osg::ref_ptr<ppu::Effect> getPostProcessingEffect(const std::string& ppeName) const;
-    osg::Vec2f                getResolution() const;
+    osg::Vec2i                getResolution() const;
 
     bool getPostProcessingEffectEnabled(const std::string& ppeName) const;
     bool hasPostProcessingEffect(const std::string& ppeName) const;

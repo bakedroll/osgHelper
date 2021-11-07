@@ -61,7 +61,7 @@ namespace ppu
     virtual InitialUnitList            getInitialUnits() const = 0;
     virtual osg::ref_ptr<osgPPU::Unit> getResultUnit() const   = 0;
     virtual InputToUniformList         getInputToUniform() const;
-    virtual void                       onResizeViewport(const osg::Vec2f& resolution);
+    virtual void                       onResizeViewport(const osg::Vec2i& resolution);
 
   protected:
 		virtual Status initializeUnits(const osg::GL2Extensions* extensions) = 0;
