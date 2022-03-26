@@ -148,7 +148,13 @@ struct View::Impl
   osg::ref_ptr<osg::Group>          sceneGraph;
   std::vector<osg::ref_ptr<Camera>> cameras;
 
-  std::map<osg::ref_ptr<Camera>, SlaveCameraMode> slaveCameraModi;
+  struct SlaveCameraData
+  {
+    SlaveCameraMode mode;
+    ViewportMode viewportMode;
+  };
+
+  std::map<osg::ref_ptr<Camera>, SlaveCameraData> slaveCameraModi;
 
   std::vector<std::weak_ptr<ResizeCallback>> resizeCallbacks;
 
@@ -380,6 +386,15 @@ void View::updateCameraViewports(int x, int y, int width, int height, float pixe
     camera->updateResolution(resolution);
   }
 
+  for (const auto& elem : m->slaveCameraModi)
+  {
+    if (elem.second.viewportMode == ViewportMode::InheritViewport)
+    {
+      elem.first->setViewport(viewport);
+      elem.first->updateResolution(resolution);
+    }
+  }
+
   for (const auto& sink : m->renderTextureUnitSinks)
   {
     sink.screenBoundData.rttData.camera->setViewport(viewport);
@@ -438,7 +453,7 @@ void View::setSlaveCameraEnabled(const osg::ref_ptr<Camera>& camera, bool enable
   if (enabled && (pos == -1))
   {
     addSlave(camera,
-      m->slaveCameraModi.at(camera) == SlaveCameraMode::UseMasterSceneData);
+      m->slaveCameraModi.at(camera).mode == SlaveCameraMode::UseMasterSceneData);
   }
   else if (!enabled && (pos >= 0))
   {
@@ -837,7 +852,7 @@ osg::ref_ptr<Camera> View::createSlaveCamera(SlaveCameraMode mode, osg::Camera::
   const auto refCamera = *m->cameras.begin();
   camera->setGraphicsContext(refCamera->getGraphicsContext());
 
-  m->slaveCameraModi[camera] = mode;
+  m->slaveCameraModi[camera] = { mode, viewportMode };
 
   addSlave(camera, mode == SlaveCameraMode::UseMasterSceneData);
 
