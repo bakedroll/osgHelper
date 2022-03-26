@@ -1,5 +1,7 @@
 #pragma once
 
+#include <osg/Texture2D>
+
 #include <utilsLib/Utils.h>
 
 #include <osgHelper/ppu/Effect.h>

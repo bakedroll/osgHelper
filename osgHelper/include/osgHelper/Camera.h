@@ -14,7 +14,8 @@ namespace osgHelper
     enum class ProjectionMode
     {
       Perspective,
-      Ortho2D
+      Ortho2D,
+      Ortho2DRatio
     };
 
     explicit Camera(ProjectionMode mode = ProjectionMode::Perspective);

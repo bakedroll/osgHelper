@@ -141,6 +141,7 @@ void Camera::setPosition(const osg::Vec3f& position)
 {
   m_position = position;
 
+  updateProjectionMatrix();
   updateModelViewMatrix();
   updateCameraAlignedQuads();
   updateScreenQuads();
@@ -191,7 +192,8 @@ void Camera::updateProjectionMode()
   {
     setReferenceFrame(osg::Camera::RELATIVE_RF);
   }
-  else if (m_mode == ProjectionMode::Ortho2D)
+  else if (m_mode == ProjectionMode::Ortho2D ||
+    m_mode == ProjectionMode::Ortho2DRatio)
   {
     setReferenceFrame(osg::Camera::ABSOLUTE_RF);
   }
@@ -204,11 +206,15 @@ void Camera::updateProjectionMode()
 
 void Camera::updateModelViewMatrix()
 {
-  if (m_mode == ProjectionMode::Ortho2D)
+  switch (m_mode)
+  {
+  case ProjectionMode::Ortho2DRatio:
+  case ProjectionMode::Ortho2D:
   {
     setViewMatrix(osg::Matrixd::identity());
+    break;
   }
-  else if (m_mode == ProjectionMode::Perspective)
+  case ProjectionMode::Perspective:
   {
     osg::Vec3f eye(0.0f, 0.0f, 0.0f);
     osg::Vec3f center(0.0f, 1.0f, 0.0f);
@@ -227,22 +233,51 @@ void Camera::updateModelViewMatrix()
     up -= m_position;
 
     setViewMatrix(osg::Matrix::lookAt(eye, center, up));
+    break;
+  }
+  default:
+    break;
   }
 }
 
 void Camera::updateProjectionMatrix()
 {
-  if (m_mode == ProjectionMode::Ortho2D)
+  switch (m_mode)
+  {
+  case ProjectionMode::Ortho2DRatio:
+  {
+    const auto width = m_resolution.x();
+    const auto height = m_resolution.y();
+    const auto x = m_position.x();
+    const auto y = m_position.y();
+    const auto zoom = m_position.z();
+    if (width > 0 && height > 0)
+    {
+      const auto ratio = static_cast<float>(height) / static_cast<float>(width);
+      const auto halfWidth = zoom == 0.0f ? 1.0f : 1.0f / zoom;
+      const auto halfHeight = zoom == 0.0f ? ratio : ratio / zoom;
+      setProjectionMatrix(osg::Matrixd::ortho2D(x - halfWidth, x + halfWidth, y - halfHeight, y + halfHeight));
+    }
+
+    break;
+  }
+  case  ProjectionMode::Ortho2D:
   {
     setProjectionMatrix(osg::Matrixd::identity());
+    break;
   }
-  else if (m_mode == ProjectionMode::Perspective)
+  case ProjectionMode::Perspective:
   {
     m_angleNearFarRatio.w() =
-            (m_resolution.y() == 0) ? 1.0f : static_cast<float>(m_resolution.x()) / m_resolution.y();
+      (m_resolution.y() == 0) ? 1.0f : static_cast<float>(m_resolution.x()) / m_resolution.y();
 
     setProjectionMatrix(osg::Matrix::perspective(m_angleNearFarRatio.x(), m_angleNearFarRatio.w(),
-                                                 m_angleNearFarRatio.y(), m_angleNearFarRatio.z()));
+      m_angleNearFarRatio.y(), m_angleNearFarRatio.z()));
+
+    break;
+  }
+  default:
+    break;
   }
 }
 
