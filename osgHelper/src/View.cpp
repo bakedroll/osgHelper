@@ -538,10 +538,11 @@ std::shared_ptr<View::ResizeCallback> View::registerResizeCallback(const ResizeC
   return callback;
 }
 
-View::RTTSlaveCameraData View::createRenderToTextureSlaveCamera(const osg::Vec2i& resolution, TextureComponent components, SlaveCameraMode mode)
+View::RTTSlaveCameraData View::createRenderToTextureSlaveCamera(const osg::Vec2i& resolution, TextureComponent components,
+                                                                osg::Camera::RenderOrder renderOrder, SlaveCameraMode mode)
 {
   RTTSlaveCameraData data;
-  data.camera = createSlaveCamera(resolution, false, mode);
+  data.camera = createSlaveCamera(mode, osg::Camera::FRAME_BUFFER_OBJECT, renderOrder, ViewportMode::FixedViewport, resolution);
 
   const auto addCameraRenderTextureComponentIfInMask = [this, &data, &resolution, components](TextureComponent component)
   {
@@ -565,11 +566,13 @@ View::RTTSlaveCameraData View::createRenderToTextureSlaveCamera(const osg::Vec2i
 }
 
 osg::ref_ptr<Camera> View::createRenderToTextureSlaveCameraToUnitSink(const ppu::RenderTextureUnitSink& sink,
+                                                                      osg::Camera::RenderOrder renderOrder,
                                                                       float textureScale, SlaveCameraMode mode)
 {
   const auto rttData = createRenderToTextureSlaveCamera(
     scaledVec2i(m->resolution, textureScale),
     OsgBufferComponentToTextureComponent(sink.getBufferComponent()),
+    renderOrder,
     mode);
 
   Impl::RenderTextureUnitSinkData data
@@ -605,10 +608,11 @@ osg::ref_ptr<Camera> View::createRenderToTextureSlaveCameraToUnitSink(const ppu:
 }
 
 View::RTTSlaveCameraScreenQuadData View::createRenderToTextureSlaveCameraToScreenQuad(TextureComponent components,
+                                                                                      osg::Camera::RenderOrder renderOrder,
                                                                                       float textureScale,
                                                                                       SlaveCameraMode mode)
 {
-  const auto rttData = createRenderToTextureSlaveCamera(scaledVec2i(m->resolution, textureScale), components, mode);
+  const auto rttData = createRenderToTextureSlaveCamera(scaledVec2i(m->resolution, textureScale), components, renderOrder, mode);
   const auto screenQuadNode = getCamera(CameraType::Scene)->createScreenQuad();
 
   RTTSlaveCameraScreenQuadData data
@@ -822,12 +826,13 @@ void View::updateCameraRenderTextures(UpdateMode mode)
   renderer->getSceneView(0)->getRenderStage()->setFrameBufferObject(nullptr);
 }
 
-osg::ref_ptr<Camera> View::createSlaveCamera(const osg::Vec2i& resolution, bool inheritViewport, SlaveCameraMode mode)
+osg::ref_ptr<Camera> View::createSlaveCamera(SlaveCameraMode mode, osg::Camera::RenderTargetImplementation renderTargetImplementation,
+                                             osg::Camera::RenderOrder renderOrder, ViewportMode viewportMode, const osg::Vec2i& resolution)
 {
   auto camera = new Camera();
 
-  camera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT, osg::Camera::FRAME_BUFFER);
-  camera->setRenderOrder(osg::Camera::PRE_RENDER);
+  camera->setRenderTargetImplementation(renderTargetImplementation, osg::Camera::FRAME_BUFFER);
+  camera->setRenderOrder(renderOrder);
 
   const auto refCamera = *m->cameras.begin();
   camera->setGraphicsContext(refCamera->getGraphicsContext());
@@ -836,16 +841,17 @@ osg::ref_ptr<Camera> View::createSlaveCamera(const osg::Vec2i& resolution, bool 
 
   addSlave(camera, mode == SlaveCameraMode::UseMasterSceneData);
 
-  if (inheritViewport)
+  if (viewportMode == ViewportMode::InheritViewport)
   {
-    camera->setViewport(refCamera->getViewport());
+    const auto viewport = refCamera->getViewport();
+    camera->setViewport(viewport);
+    camera->updateResolution(osg::Vec2i(viewport->width(), viewport->height()));
   }
   else
   {
     camera->setViewport(0, 0, resolution.x(), resolution.y());
+    camera->updateResolution(resolution);
   }
-
-  camera->updateResolution(resolution);
 
   return camera;
 }

@@ -50,6 +50,12 @@ namespace osgHelper
       DepthBuffer = 0x2
     };
 
+    enum class ViewportMode
+    {
+      InheritViewport,
+      FixedViewport
+    };
+
     using SlaveRenderTextures = std::map<TextureComponent, osg::ref_ptr<osg::Texture2D>>;
 
     struct RTTSlaveCameraData
@@ -105,15 +111,22 @@ namespace osgHelper
 
     std::shared_ptr<ResizeCallback> registerResizeCallback(const ResizeCallbackFunc& func);
 
+    osg::ref_ptr<Camera> createSlaveCamera(SlaveCameraMode mode, osg::Camera::RenderTargetImplementation renderTargetImplementation,
+                                           osg::Camera::RenderOrder renderOrder, ViewportMode viewportMode,
+                                           const osg::Vec2i& resolution = osg::Vec2i());
+
     RTTSlaveCameraData createRenderToTextureSlaveCamera(const osg::Vec2i& resolution,
                                                         TextureComponent components = TextureComponent::ColorBuffer,
+                                                        osg::Camera::RenderOrder renderOrder = osg::Camera::PRE_RENDER,
                                                         SlaveCameraMode mode = SlaveCameraMode::UseSlaveChildSceneData);
 
     osg::ref_ptr<Camera> createRenderToTextureSlaveCameraToUnitSink(const ppu::RenderTextureUnitSink& sink,
+                                                                    osg::Camera::RenderOrder renderOrder = osg::Camera::PRE_RENDER,
                                                                     float textureScale = 1.0f,
                                                                     SlaveCameraMode mode = SlaveCameraMode::UseSlaveChildSceneData);
 
     RTTSlaveCameraScreenQuadData createRenderToTextureSlaveCameraToScreenQuad(TextureComponent components = TextureComponent::ColorBuffer,
+                                                                              osg::Camera::RenderOrder renderOrder = osg::Camera::PRE_RENDER,
                                                                               float textureScale = 1.0f,
                                                                               SlaveCameraMode mode = SlaveCameraMode::UseSlaveChildSceneData);
 
@@ -129,8 +142,6 @@ namespace osgHelper
     void alterPipelineState(const std::function<void()>& func, UpdateMode mode = UpdateMode::Recreate);
 
     void updateCameraRenderTextures(UpdateMode mode = UpdateMode::Keep);
-
-    osg::ref_ptr<Camera> createSlaveCamera(const osg::Vec2i& resolution, bool inheritViewport, SlaveCameraMode mode);
 
   };
 }
