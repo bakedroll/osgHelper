@@ -18,6 +18,8 @@ public:
   osg::ref_ptr<ITextureBlueprint> texLayer(int texLayer) override;
   osg::ref_ptr<ITextureBlueprint> assign(const osg::ref_ptr<osg::StateSet>& stateSet) override;
   osg::ref_ptr<ITextureBlueprint> uniform(const osg::ref_ptr<osg::StateSet>& stateSet, const std::string& uniformName) override;
+  osg::ref_ptr<ITextureBlueprint> minFilter(osg::Texture::FilterMode filterMode) override;
+  osg::ref_ptr<ITextureBlueprint> magFilter(osg::Texture::FilterMode filterMode) override;
 
   osg::ref_ptr<osg::Texture2D> build() const override;
 

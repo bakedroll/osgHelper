@@ -81,6 +81,18 @@ osg::ref_ptr<ITextureBlueprint> TextureBlueprint::uniform(const osg::ref_ptr<osg
   return this;
 }
 
+osg::ref_ptr<ITextureBlueprint> TextureBlueprint::minFilter(osg::Texture::FilterMode filterMode)
+{
+  m->minFilter = filterMode;
+  return this;
+}
+
+osg::ref_ptr<ITextureBlueprint> TextureBlueprint::magFilter(osg::Texture::FilterMode filterMode)
+{
+  m->magFilter = filterMode;
+  return this;
+}
+
 osg::ref_ptr<osg::Texture2D> TextureBlueprint::build() const
 {
   auto texture = new osg::Texture2D();
