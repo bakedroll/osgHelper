@@ -199,11 +199,13 @@ struct View::Impl
     auto geode = new osg::Geode();
     geode->addDrawable(geo);
 
-    screenStateSet = screenCamera->getOrCreateStateSet();
+    screenStateSet = geo->getOrCreateStateSet();
     screenStateSet->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
-    screenStateSet->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
-    screenStateSet->setMode(GL_DEPTH_TEST, osg::StateAttribute::OFF);
-    screenStateSet->setMode(GL_BLEND, osg::StateAttribute::OFF);
+
+    auto camStateSet = screenCamera->getOrCreateStateSet();
+    camStateSet->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
+    camStateSet->setMode(GL_DEPTH_TEST, osg::StateAttribute::OFF);
+    camStateSet->setMode(GL_BLEND, osg::StateAttribute::OFF);
 
     screenCamera->addChild(geode);
   }
