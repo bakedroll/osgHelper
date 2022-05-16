@@ -161,6 +161,11 @@ void Camera::updateResolution(const osg::Vec2i& resolution)
   updateProjectionMatrix();
   updateCameraAlignedQuads();
   updateScreenQuads();
+
+  for (const auto& callback : m_updateResolutionCallbacks)
+  {
+    callback(resolution);
+  }
 }
 
 void Camera::pickLine(float x, float y, osg::Vec3f& origin, osg::Vec3f& target) const
@@ -184,6 +189,11 @@ void Camera::pickRay(float x, float y, osg::Vec3f& point, osg::Vec3f& direction)
 
   direction = target - point;
   direction.normalize();
+}
+
+void Camera::registerUpdateResolutionCallback(const UpdateResolutionCallback& callback)
+{
+  m_updateResolutionCallbacks.emplace_back(callback);
 }
 
 void Camera::updateProjectionMode()

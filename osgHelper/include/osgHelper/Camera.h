@@ -4,6 +4,8 @@
 
 #include <osg/Camera>
 
+#include <functional>
+
 namespace osgHelper
 {
   class Camera : public osg::Camera
@@ -17,6 +19,8 @@ namespace osgHelper
       Ortho2D,
       Ortho2DRatio
     };
+
+    using UpdateResolutionCallback = std::function<void(const osg::Vec2i&)>;
 
     explicit Camera(ProjectionMode mode = ProjectionMode::Perspective);
     explicit Camera(const osg::Camera& camera, const osg::CopyOp& copyOp = osg::CopyOp::SHALLOW_COPY);
@@ -48,6 +52,8 @@ namespace osgHelper
     void pickLine(float x, float y, osg::Vec3f& origin, osg::Vec3f& target) const;
     void pickRay(float x, float y, osg::Vec3f& point, osg::Vec3f& direction) const;
 
+    void registerUpdateResolutionCallback(const UpdateResolutionCallback& callback);
+
   private:
     using CameraAlignedQuadList = std::vector<osg::ref_ptr<CameraAlignedQuad>>;
     using ScreenQuadList        = std::vector<osg::ref_ptr<osg::MatrixTransform>>;
@@ -69,5 +75,7 @@ namespace osgHelper
 
     CameraAlignedQuadList m_cameraAlignedQuads;
     ScreenQuadList        m_screenQuads;
+
+    std::vector<UpdateResolutionCallback> m_updateResolutionCallbacks;
   };
 }
