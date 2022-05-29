@@ -34,6 +34,7 @@ namespace osgHelper
 
     osg::Vec3f getPosition() const;
     osg::Quat getAttitude() const;
+    osg::Vec2i getResolution() const;
 
     double getProjectionNear() const;
     double getProjectionFar() const;

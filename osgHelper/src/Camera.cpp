@@ -101,6 +101,11 @@ osg::Quat Camera::getAttitude() const
   return m_attitude;
 }
 
+osg::Vec2i Camera::getResolution() const
+{
+  return m_resolution;
+}
+
 double Camera::getProjectionNear() const
 {
   return m_angleNearFarRatio.y();
