@@ -675,7 +675,7 @@ void View::assemblePipeline()
 
   if (state)
   {
-    const auto extensions = osg::GL2Extensions::Get(state->getContextID(), false);
+    const auto extensions = osg::GL2Extensions::Get(state->getContextID(), true);
 
     for (auto& it : m->ppeDictionary)
     {
