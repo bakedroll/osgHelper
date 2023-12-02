@@ -30,6 +30,8 @@ void rotateVector(osg::Vec3* vec, const osg::Quat& quat);
 void transformVector(osg::Vec3* vec, osg::Matrixd* mat);
 
 osg::Quat getQuatFromEuler(double pitch, double roll, double yaw);
+osg::Vec3f getEulerFromQuat(const osg::Quat& quat);
+
 osg::Matrix getMatrixFromEuler(double pitch, double roll, double yaw);
 osg::Vec3f getVec3FromEuler(double pitch, double roll, double yaw, osg::Vec3 origin = osg::Vec3(0.0, 1.0, 0.0));
 
