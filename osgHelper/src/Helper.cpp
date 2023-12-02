@@ -16,8 +16,8 @@ static osg::Vec3f threeaxisrot(double r11, double r12, double r21, double r31, d
 {
 	return osg::Vec3f(
 		static_cast<float>(atan2(r31, r32)),
-		static_cast<float>(atan2(r11, r12)),
-		static_cast<float>(asin(r21)));
+		static_cast<float>(asin(r21)),
+		static_cast<float>(atan2(r11, r12)));
 }
 
 void osgHelper::rotateVector(osg:: Vec3* vec, const osg::Quat& quat)
@@ -63,11 +63,11 @@ osg::Quat osgHelper::getQuatFromEuler(double pitch, double roll, double yaw)
 osg::Vec3f osgHelper::getEulerFromQuat(const osg::Quat& quat)
 {
 	return threeaxisrot(
-		-2.0f * (quat.x() * quat.z() - quat.w() * quat.y()),
-		quat.w() * quat.w() + quat.x() * quat.x() - quat.y() * quat.y() - quat.z() * quat.z(),
 		2.0f * (quat.x() * quat.y() + quat.w() * quat.z()),
-		-2.0f * (quat.y() * quat.z() - quat.w() * quat.x()),
-		quat.w() * quat.w() - quat.x() * quat.x() + quat.y() * quat.y() - quat.z() * quat.z());
+		quat.w() * quat.w() + quat.x() * quat.x() - quat.y() * quat.y() - quat.z() * quat.z(),
+		-2.0f * (quat.x() * quat.z() - quat.w() * quat.y()),
+		2.0f * (quat.y() * quat.z() + quat.w() * quat.x()),
+		quat.w() * quat.w() - quat.x() * quat.x() - quat.y() * quat.y() + quat.z() * quat.z());
 }
 
 osg::Matrix osgHelper::getMatrixFromEuler(double pitch, double roll, double yaw)
