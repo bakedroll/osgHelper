@@ -103,6 +103,7 @@ namespace osgHelper
 
     osg::ref_ptr<ppu::Effect> getPostProcessingEffect(const std::string& ppeName) const;
     osg::Vec2i                getResolution() const;
+    bool isResolutionInitialized() const;
 
     bool getPostProcessingEffectEnabled(const std::string& ppeName) const;
     bool hasPostProcessingEffect(const std::string& ppeName) const;

@@ -526,6 +526,11 @@ osg::Vec2i View::getResolution() const
   return m->resolution;
 }
 
+bool View::isResolutionInitialized() const
+{
+  return m->isResolutionInitialized;
+}
+
 bool View::getPostProcessingEffectEnabled(const std::string& ppeName) const
 {
   return (m->ppeDictionary.count(ppeName) > 0) ? m->ppeDictionary[ppeName].isEnabled : false;
