@@ -75,7 +75,7 @@ namespace osgHelper
     osg::Vec2i m_resolution;
 
     CameraAlignedQuadList m_cameraAlignedQuads;
-    ScreenQuadList        m_screenQuads;
+    ScreenQuadList m_screenQuads;
 
     std::vector<UpdateResolutionCallback> m_updateResolutionCallbacks;
   };

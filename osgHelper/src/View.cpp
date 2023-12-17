@@ -128,25 +128,26 @@ struct View::Impl
   struct PostProcessingState
   {
     osg::ref_ptr<ppu::Effect> effect;
-    bool                      isEnabled    = true;
-    bool                      isIntegrated = false;
+    bool isEnabled    = true;
+    bool isIntegrated = false;
   };
 
   struct RenderTextureUnitSinkData
   {
-    ScreenBoundRTTData                screenBoundData;
-    ppu::RenderTextureUnitSink        sink;
-    osg::ref_ptr<osgPPU::UnitCamera>  unitCamera;
+    ScreenBoundRTTData screenBoundData;
+    ppu::RenderTextureUnitSink sink;
+    osg::ref_ptr<osgPPU::UnitCamera> unitCamera;
     osg::ref_ptr<osgPPU::UnitCameraAttachmentBypass> unitCameraAttachmentBypass;
   };
 
-  using RenderTextureDictionary          = std::map<int, RenderTexture>;
-  using PostProcessingStateDictionary    = std::map<std::string, PostProcessingState>;
-  using RenderTextureUnitSinkList        = std::vector<RenderTextureUnitSinkData>;
+  using RenderTextureDictionary = std::map<int, RenderTexture>;
+  using PostProcessingStateDictionary = std::map<std::string, PostProcessingState>;
+  using RTTSlaveCameraDataList = std::vector<RTTSlaveCameraData>;
+  using RenderTextureUnitSinkList = std::vector<RenderTextureUnitSinkData>;
   using RTTSlaveCameraScreenQuadDataList = std::vector<RTTSlaveCameraScreenQuadData>;
 
-  osg::ref_ptr<osg::Group>          sceneGraph;
-  std::vector<osg::ref_ptr<Camera>> cameras;
+  osg::ref_ptr<osg::Group> sceneGraph;
+  std::vector<osg::ref_ptr<osgHelper::Camera>> cameras;
 
   struct SlaveCameraData
   {
@@ -154,37 +155,38 @@ struct View::Impl
     ViewportMode viewportMode;
   };
 
-  std::map<osg::ref_ptr<Camera>, SlaveCameraData> slaveCameraModi;
+  std::map<osg::ref_ptr<osgHelper::Camera>, SlaveCameraData> slaveCameraModi;
 
   std::vector<std::weak_ptr<ResizeCallback>> resizeCallbacks;
 
   osg::ref_ptr<osg::StateSet> screenStateSet;
 
   osg::Vec2i resolution;
-  bool       isResolutionInitialized;
-  bool       isPipelineDirty;
+  bool isResolutionInitialized;
+  bool isPipelineDirty;
 
   osg::ref_ptr<osgPPU::Processor> processor;
-  osg::ref_ptr<osg::ClampColor>   clampColor;
+  osg::ref_ptr<osg::ClampColor> clampColor;
 
-  osg::ref_ptr<osgPPU::Unit>      lastUnit;
+  osg::ref_ptr<osgPPU::Unit> lastUnit;
   osg::ref_ptr<osgPPU::UnitInOut> unitOutput;
 
   PostProcessingStateDictionary ppeDictionary;
-  RenderTextureDictionary       renderTextures;
+  RenderTextureDictionary renderTextures;
 
+  RTTSlaveCameraDataList rttSlaveCameraData;
   RenderTextureUnitSinkList renderTextureUnitSinks;
   RTTSlaveCameraScreenQuadDataList rttScreenQuadData;
 
   void setupCameras()
   {
-    const auto sceneCamera  = new Camera(Camera::ProjectionMode::Perspective);
+    const auto sceneCamera  = new osgHelper::Camera(osgHelper::Camera::ProjectionMode::Perspective);
     sceneCamera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT, osg::Camera::FRAME_BUFFER);
     sceneCamera->setComputeNearFarMode(osg::CullSettings::DO_NOT_COMPUTE_NEAR_FAR);
     sceneCamera->setClearMask(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     sceneCamera->setRenderOrder(osg::Camera::NESTED_RENDER);
 
-    const auto screenCamera = new Camera(Camera::ProjectionMode::Ortho2D);
+    const auto screenCamera = new osgHelper::Camera(osgHelper::Camera::ProjectionMode::Ortho2D);
     screenCamera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER, osg::Camera::FRAME_BUFFER);
     screenCamera->setRenderOrder(osg::Camera::RenderOrder::POST_RENDER);
 
@@ -216,8 +218,9 @@ struct View::Impl
     return createCameraRenderTexture(sceneCamera, resolution, bufferComponent, osg::Texture::LINEAR);
   }
 
-  RenderTexture getOrCreateRenderTexture(osg::Camera::BufferComponent bufferComponent,
-                                         UpdateMode                   mode = UpdateMode::Keep)
+  RenderTexture getOrCreateRenderTexture(
+    osg::Camera::BufferComponent bufferComponent,
+    UpdateMode mode = UpdateMode::Keep)
   {
     auto it = renderTextures.find(bufferComponent);
     if (it != renderTextures.end())
@@ -330,13 +333,9 @@ void View::updateResolution(const osg::Vec2i& resolution, float pixelRatio)
   {
     osgPPU::Camera::resizeViewport(0, 0, width, height, getCamera(CameraType::Scene));
 
-    for (const auto& sink : m->renderTextureUnitSinks)
+    for (const auto& data : m->rttSlaveCameraData)
     {
-      osgPPU::Camera::resizeViewport(0, 0, width, height, sink.screenBoundData.rttData.camera);
-    }
-    for (const auto& screenQuad : m->rttScreenQuadData)
-    {
-      osgPPU::Camera::resizeViewport(0, 0, width, height, screenQuad.screenBoundData.rttData.camera);
+      osgPPU::Camera::resizeViewport(0, 0, width, height, data.camera);
     }
 
     m->processor->onViewportChange();
@@ -397,16 +396,10 @@ void View::updateCameraViewports(int x, int y, int width, int height, float pixe
     }
   }
 
-  for (const auto& sink : m->renderTextureUnitSinks)
+  for (const auto& data : m->rttSlaveCameraData)
   {
-    sink.screenBoundData.rttData.camera->setViewport(viewport);
-    sink.screenBoundData.rttData.camera->updateResolution(resolution);
-  }
-
-  for (const auto& screenQuad : m->rttScreenQuadData)
-  {
-    screenQuad.screenBoundData.rttData.camera->setViewport(viewport);
-    screenQuad.screenBoundData.rttData.camera->updateResolution(resolution);
+    data.camera->setViewport(viewport);
+    data.camera->updateResolution(resolution);
   }
 }
 
@@ -434,7 +427,7 @@ osg::ref_ptr<osgHelper::Camera> View::getCamera(CameraType type) const
   return m->cameras[utilsLib::underlying(type)];
 }
 
-void View::setSlaveCameraEnabled(const osg::ref_ptr<Camera>& camera, bool enabled)
+void View::setSlaveCameraEnabled(const osg::ref_ptr<osgHelper::Camera>& camera, bool enabled)
 {
   if (m->slaveCameraModi.count(camera) == 0)
   {
@@ -560,9 +553,10 @@ std::shared_ptr<View::ResizeCallback> View::registerResizeCallback(const ResizeC
   return callback;
 }
 
-View::RTTSlaveCameraData View::createRenderToTextureSlaveCamera(const osg::Vec2i& resolution, TextureComponent components,
-                                                                osg::Camera::RenderOrder renderOrder, SlaveCameraMode mode)
+View::RTTSlaveCameraData View::createRenderToTextureSlaveCamera(
+  TextureComponent components, osg::Camera::RenderOrder renderOrder, float textureScale, SlaveCameraMode mode)
 {
+  const auto resolution = scaledVec2i(m->resolution, textureScale);
   RTTSlaveCameraData data;
   data.camera = createSlaveCamera(mode, osg::Camera::FRAME_BUFFER_OBJECT, renderOrder, ViewportMode::FixedViewport, resolution);
 
@@ -584,17 +578,34 @@ View::RTTSlaveCameraData View::createRenderToTextureSlaveCamera(const osg::Vec2i
   addCameraRenderTextureComponentIfInMask(TextureComponent::ColorBuffer);
   addCameraRenderTextureComponentIfInMask(TextureComponent::DepthBuffer);
 
+  m->rttSlaveCameraData.emplace_back(data);
   return data;
 }
 
-osg::ref_ptr<Camera> View::createRenderToTextureSlaveCameraToUnitSink(const ppu::RenderTextureUnitSink& sink,
-                                                                      osg::Camera::RenderOrder renderOrder,
-                                                                      float textureScale, SlaveCameraMode mode)
+void View::removeRenderToTextureSlaveCamera(const osg::ref_ptr<osgHelper::Camera>& camera)
+{
+  for (auto it = m->rttSlaveCameraData.begin(); it != m->rttSlaveCameraData.end(); ++it)
+  {
+    if (it->camera == camera)
+    {
+      m->rttSlaveCameraData.erase(it);
+      removeSlaveCamera(camera);
+      return;
+    }
+  }
+
+  UTILS_LOG_WARN("Could not remove render-to-texture slave camera");
+}
+
+osg::ref_ptr<osgHelper::Camera> View::createRenderToTextureSlaveCameraToUnitSink(
+  const ppu::RenderTextureUnitSink& sink,
+  osg::Camera::RenderOrder renderOrder,
+  float textureScale, SlaveCameraMode mode)
 {
   const auto rttData = createRenderToTextureSlaveCamera(
-    scaledVec2i(m->resolution, textureScale),
     OsgBufferComponentToTextureComponent(sink.getBufferComponent()),
     renderOrder,
+    textureScale,
     mode);
 
   Impl::RenderTextureUnitSinkData data
@@ -629,12 +640,32 @@ osg::ref_ptr<Camera> View::createRenderToTextureSlaveCameraToUnitSink(const ppu:
   return rttData.camera;
 }
 
+void View::removeRenderToTextureSlaveCameraToUnitSink(const osg::ref_ptr<osgHelper::Camera>& camera)
+{
+  for (auto it = m->renderTextureUnitSinks.begin(); it != m->renderTextureUnitSinks.end(); ++it)
+  {
+    if (it->screenBoundData.rttData.camera == camera)
+    {
+      if (m->processor && m->processor->containsNode(it->unitCamera))
+      {
+        m->processor->removeChild(it->unitCamera);
+      }
+
+      m->renderTextureUnitSinks.erase(it);
+      removeSlaveCamera(camera);
+      return;
+    }
+  }
+
+  UTILS_LOG_WARN("Could not remove unit-sink slave camera");
+}
+
 View::RTTSlaveCameraScreenQuadData View::createRenderToTextureSlaveCameraToScreenQuad(TextureComponent components,
                                                                                       osg::Camera::RenderOrder renderOrder,
                                                                                       float textureScale,
                                                                                       SlaveCameraMode mode)
 {
-  const auto rttData = createRenderToTextureSlaveCamera(scaledVec2i(m->resolution, textureScale), components, renderOrder, mode);
+  const auto rttData = createRenderToTextureSlaveCamera(components, renderOrder, textureScale, mode);
   const auto screenQuadNode = getCamera(CameraType::Scene)->createScreenQuad();
 
   RTTSlaveCameraScreenQuadData data
@@ -658,6 +689,20 @@ View::RTTSlaveCameraScreenQuadData View::createRenderToTextureSlaveCameraToScree
   return data;
 }
 
+void View::removeRenderToTextureSlaveCameraToScreenQuad(const osg::ref_ptr<osgHelper::Camera>& camera)
+{
+  for (auto it = m->rttScreenQuadData.begin(); it != m->rttScreenQuadData.end(); ++it)
+  {
+    if (it->screenBoundData.rttData.camera == camera)
+    {
+      m->rttScreenQuadData.erase(it);
+      removeSlaveCamera(camera);
+      return;
+    }
+  }
+
+  UTILS_LOG_WARN("Could not remove screen-quad slave camera");
+}
 
 void View::initializePipelineProcessor()
 {
@@ -848,10 +893,10 @@ void View::updateCameraRenderTextures(UpdateMode mode)
   renderer->getSceneView(0)->getRenderStage()->setFrameBufferObject(nullptr);
 }
 
-osg::ref_ptr<Camera> View::createSlaveCamera(SlaveCameraMode mode, osg::Camera::RenderTargetImplementation renderTargetImplementation,
+osg::ref_ptr<osgHelper::Camera> View::createSlaveCamera(SlaveCameraMode mode, osg::Camera::RenderTargetImplementation renderTargetImplementation,
                                              osg::Camera::RenderOrder renderOrder, ViewportMode viewportMode, const osg::Vec2i& resolution)
 {
-  auto camera = new Camera();
+  auto camera = new osgHelper::Camera();
 
   camera->setRenderTargetImplementation(renderTargetImplementation, osg::Camera::FRAME_BUFFER);
   camera->setRenderOrder(renderOrder);
@@ -876,6 +921,16 @@ osg::ref_ptr<Camera> View::createSlaveCamera(SlaveCameraMode mode, osg::Camera::
   }
 
   return camera;
+}
+
+void View::removeSlaveCamera(const osg::ref_ptr<osgHelper::Camera>& camera)
+{
+  setSlaveCameraEnabled(camera, false);
+  const auto it = m->slaveCameraModi.find(camera);
+  if (it != m->slaveCameraModi.end())
+  {
+    m->slaveCameraModi.erase(it);
+  }
 }
 
 }
