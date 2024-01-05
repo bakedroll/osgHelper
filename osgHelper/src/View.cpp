@@ -453,6 +453,7 @@ void View::setSlaveCameraEnabled(const osg::ref_ptr<osgHelper::Camera>& camera, 
   else if (!enabled && (pos >= 0))
   {
     removeSlave(pos);
+    camera->setRenderer(nullptr);
   }
 }
 
