@@ -335,7 +335,10 @@ void View::updateResolution(const osg::Vec2i& resolution, float pixelRatio)
 
     for (const auto& data : m->rttSlaveCameraData)
     {
-      osgPPU::Camera::resizeViewport(0, 0, width, height, data.camera);
+      if (data.camera->getRenderer() != nullptr)
+      {
+        osgPPU::Camera::resizeViewport(0, 0, width, height, data.camera);
+      }
     }
 
     m->processor->onViewportChange();
