@@ -110,7 +110,7 @@ namespace osgHelper
 
     void cleanUp();
 
-    std::shared_ptr<ResizeCallback> registerResizeCallback(const ResizeCallbackFunc& func);
+    std::shared_ptr<ResizeCallback> registerResizeCallback(const ResizeCallbackFunc& func, bool callNow = true);
 
     RTTSlaveCameraData createRenderToTextureSlaveCamera(
       TextureComponent components = TextureComponent::ColorBuffer,

@@ -160,6 +160,13 @@ void Camera::setAttitude(const osg::Quat& attitude)
   updateScreenQuads();
 }
 
+void Camera::setNearFar(double near, double far)
+{
+  m_angleNearFarRatio.y() = near;
+  m_angleNearFarRatio.z() = far;
+  updateProjectionMatrix();
+}
+
 void Camera::updateResolution(const osg::Vec2i& resolution)
 {
   m_resolution = resolution;

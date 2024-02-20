@@ -47,6 +47,7 @@ namespace osgHelper
 
     void setPosition(const osg::Vec3f& position);
     void setAttitude(const osg::Quat& attitude);
+    void setNearFar(double near, double far);
 
     void updateResolution(const osg::Vec2i& resolution);
 

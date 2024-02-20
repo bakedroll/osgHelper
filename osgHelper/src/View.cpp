@@ -546,11 +546,14 @@ void View::cleanUp()
   m->ppeDictionary.clear();
 }
 
-std::shared_ptr<View::ResizeCallback> View::registerResizeCallback(const ResizeCallbackFunc& func)
+std::shared_ptr<View::ResizeCallback> View::registerResizeCallback(const ResizeCallbackFunc& func, bool callNow)
 {
   auto callback = std::make_shared<ResizeCallback>();
   callback->func = func;
-  callback->func(m->resolution);
+  if (callNow)
+  {
+    callback->func(m->resolution);
+  }
 
   m->resizeCallbacks.emplace_back(callback);
 
