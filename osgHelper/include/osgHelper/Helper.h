@@ -29,6 +29,8 @@ enum class QuadOrientation
 void rotateVector(osg::Vec3* vec, const osg::Quat& quat);
 void transformVector(osg::Vec3* vec, osg::Matrixd* mat);
 
+osg::Quat getAlignedQuat(const osg::Vec3f& origin, const osg::Vec3f& target);
+
 osg::Quat getQuatFromEuler(double pitch, double roll, double yaw);
 osg::Vec3f getEulerFromQuat(const osg::Quat& quat);
 

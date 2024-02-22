@@ -37,6 +37,18 @@ void osgHelper::transformVector(osg::Vec3* vec, osg::Matrixd* mat)
 	(*vec)[2] = (*mat)(0, 2)*cpy[0] + (*mat)(1, 2)*cpy[1] + (*mat)(2, 2)*cpy[2] + (*mat)(3, 2);
 }
 
+osg::Quat osgHelper::getAlignedQuat(const osg::Vec3f& origin, const osg::Vec3f& target)
+{
+  const osg::Vec3f a(0.0f, 1.0f, 0.0f);
+
+	auto b = target - origin;
+	b.normalize();
+
+	auto v = a + b;
+	v.normalize();
+	return osg::Quat(v * b, v ^ b);
+}
+
 osg::Quat osgHelper::getQuatFromEuler(double pitch, double roll, double yaw)
 {
 	osg::Quat q;
