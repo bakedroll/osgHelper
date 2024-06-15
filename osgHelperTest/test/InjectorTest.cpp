@@ -175,7 +175,7 @@ TEST(InjectorTest, DependencyTree)
   EXPECT_EQ(dlist1.size(), 2);
   EXPECT_EQ(dlist2.size(), 2);
 
-  for (auto i = 0; i < dlist1.size(); i++)
+  for (auto i = 0U; i < dlist1.size(); i++)
   {
     EXPECT_EQ(dlist1[i], dlist2[i]);
   }
@@ -192,7 +192,7 @@ TEST(InjectorTest, DependencyTree)
   EXPECT_EQ(flist1.size(), 2);
   EXPECT_EQ(flist2.size(), 2);
 
-  for (auto i = 0; i < flist1.size(); i++)
+  for (auto i = 0U; i < flist1.size(); i++)
   {
     EXPECT_NE(flist1[i], flist2[i]);
   }
